@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,6 +27,7 @@ final selectedChatProvider = StateProvider<Chat?>((ref) => null);
 final isInCallProvider = StateProvider<bool>((ref) => false);
 final chatMessagesProvider = StateProvider<Map<int,List<Message>>>((ref) => {});
 
+final selectedFilesProvider = StateProvider<List<File>>((ref) => []);
 
 final chatsListProvider = Provider<List<Chat>>((ref) {
   final chats = ref.watch(chatsServiceProvider).chatList;
@@ -42,7 +44,6 @@ class ChatController extends StateNotifier<ChatControllerState> {
   FriendsService _friendsService;
   AuthService _authService;
   Ref ref;
-
 
   ChatController(this._chatService, this._authService, this._messageService, this._friendsService, this.ref) : super(ChatControllerState());
 

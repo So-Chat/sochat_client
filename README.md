@@ -6,6 +6,8 @@ Eng: __SoChat enables users to create and manage their own messaging server for 
 
 Rus: __SoChat позволяет пользователям создавать и управлять собственным сервером для обмена текстовыми и голосовыми сообщениями, предоставляя им полный контроль над настройкой и безопасностью!__
 
+Made on Flutter
+
 [**Made for SoChat Server / Сделано для SoChat Server**](https://github.com/yomirein/SoChatServer)
 
 ## IT STILL WORK IN PROGRESS / ПОКА В РАЗРАБОТКЕ
@@ -16,15 +18,16 @@ What was done / Что было сделано:
 ## Libraries used in project / Библиотеки использованные в проекте
 
 | Library            | Version |
-|--------------------|-------|
-| encrypt            | 5.0.3 |
-| flutter_riverpod   | 3.2.1 |
-| http               | 1.6.0 |
-| cryptography       | 2.9.0 |
-| web_socket_channel | 3.0.3 |
-| flutter_secure_storage | 10.0.0 |
-| tray_manager | 0.5.2 |
-| flutter_local_notifications | 21.0.0 |
+|--------------------|---------|
+| encrypt            | 5.0.3   |
+| flutter_riverpod   | 3.2.1   |
+| http               | 1.6.0   |
+| cryptography       | 2.9.0   |
+| web_socket_channel | 3.0.3   |
+| flutter_secure_storage | 10.0.0  |
+| tray_manager | 0.5.2   |
+| flutter_local_notifications | 21.0.0  |
+ |file_picker| 11.0.2        |
 
 Eng: I'm currently working on it as a college project, and it will continue if people show interest after first working release.
 
