@@ -399,7 +399,7 @@ class _SoDesignPageState extends ConsumerState<SoDesignPage> with TrayListener {
             }, child: Text("Notification test")),
 
             TextButton(onPressed: () {
-              mediaService.uploadImage("http://localhost:8081");
+              //mediaService.uploadMedia("http://localhost:8081", 1);
             }, child: Text("Test Media Upload")),
 
           ],
