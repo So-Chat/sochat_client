@@ -1,3 +1,4 @@
+import 'package:sochat_client/modules/media/media.dart';
 import 'package:sochat_client/modules/users/user.dart';
 
 class Message {
@@ -9,6 +10,8 @@ class Message {
   final String content;
   final DateTime timestamp;
 
+  final List<Media>? mediaFiles;
+
   final int keyVersion;
 
   const Message({
@@ -19,6 +22,7 @@ class Message {
     this.keyVersion = 0,
     required this.content,
     required this.timestamp,
+    this.mediaFiles,
   });
 
 

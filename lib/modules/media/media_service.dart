@@ -7,18 +7,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:mime/mime.dart';
+import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
+
+import 'media.dart';
 
 final mediaServiceProvider = Provider<MediaService>((ref) {
   final _keyService = ref.read(keyServiceProvider.notifier);
-  return MediaService(_keyService);
+  final _authService = ref.read(authServiceProvider);
+  return MediaService(_keyService, _authService);
 });
 
 class MediaService {
 
   final KeyService _keyService;
+  final AuthService _authService;
 
-  MediaService(this._keyService);
+  MediaService(this._keyService, this._authService);
 
   Future<List<File>> getFiles() async {
     FilePickerResult? result = await FilePicker.pickFiles(allowMultiple: true);
@@ -31,41 +36,54 @@ class MediaService {
     }
   }
 
-  Future<void> uploadMedia(String ip, int chatId, File file, {String description = ""}) async{
+  Future<void> uploadMedia(String ip, List<Media> mediaFiles, {String? description}) async{
+
+    // TODO: CHANGE EVERYTHING TO DIO IN THE NEAR FUTURE
+    // cuz Multipart method is not quite optimized
+
+
     var url = Uri.parse((ip + '/media').toString());
     var request = await http.MultipartRequest("POST", url);
 
-    request.fields['description'] = description;
-    request.fields['chatId'] = chatId.toString();
-
-    final fileBytes = await file.readAsBytes();
-    final mimeType = lookupMimeType(file.uri.pathSegments.last);
+    // Set chat id and send authorization token
+    request.headers['Authorization'] = 'Bearer ${_authService.token!}';
 
     String fieldName = 'file';
 
-    if (mimeType != null) {
-      if (mimeType.startsWith('image/')) {
-        fieldName = 'photo';
-      } else if (mimeType.startsWith('video/')) {
-        fieldName = 'video';
-      } else if (mimeType.startsWith('audio/')) {
-        fieldName = 'audio';
-      } else {
-        fieldName = 'document';
+    // Add every file to request
+    for (var mediaFile in mediaFiles) {
+      final fileBytes = await mediaFile.file.readAsBytes();
+
+      // Configure mimeType
+      // It will help client configure out how to display file when someone gets it
+      final mimeType = lookupMimeType(mediaFile.file.uri.pathSegments.last);
+      if (mimeType != null) {
+        if (mimeType.startsWith('image/')) {
+          fieldName = 'photo';
+        } else if (mimeType.startsWith('video/')) {
+          fieldName = 'video';
+        } else if (mimeType.startsWith('audio/')) {
+          fieldName = 'audio';
+        } else {
+          fieldName = 'document';
+        }
       }
+
+      // Generating multipart file, it will make send files in request fragmented
+      var multipartFile = http.MultipartFile.fromBytes(
+          fieldName,
+          fileBytes,
+          filename: mediaFile.file.uri.pathSegments.last,
+          contentType: mimeType != null ? http.MediaType.parse(mimeType) : null
+      ); // And adding it to request
+      request.files.add(multipartFile);
+
     }
-
-
-    var multipartFile = http.MultipartFile.fromBytes(
-      fieldName,
-      fileBytes,
-      filename: file.uri.pathSegments.last,
-      contentType: mimeType != null ? http.MediaType.parse(mimeType) : null
-    );
-    request.files.add(multipartFile);
-
+    // Finally send request
     var response = await request.send();
 
+
+    // Debug code
     if (response.statusCode == 200) {
       print('Loaded!');
     } else {

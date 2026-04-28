@@ -10,6 +10,7 @@ import 'package:sochat_client/modules/chats/chat_service.dart';
 import 'package:sochat_client/modules/chats/participant.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/friends/friends_service.dart';
+import 'package:sochat_client/modules/media/media.dart';
 import 'package:sochat_client/modules/messages/message.dart';
 import 'package:sochat_client/modules/messages/message_service.dart';
 import 'package:sochat_client/so_ui/notifications/so_notification.dart';
@@ -27,7 +28,7 @@ final selectedChatProvider = StateProvider<Chat?>((ref) => null);
 final isInCallProvider = StateProvider<bool>((ref) => false);
 final chatMessagesProvider = StateProvider<Map<int,List<Message>>>((ref) => {});
 
-final selectedFilesProvider = StateProvider<List<File>>((ref) => []);
+final selectedMediaProvider = StateProvider<List<Media>>((ref) => []);
 
 final chatsListProvider = Provider<List<Chat>>((ref) {
   final chats = ref.watch(chatsServiceProvider).chatList;

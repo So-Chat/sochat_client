@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sochat_client/modules/keys/key_service.dart';
+import 'package:sochat_client/modules/media/media.dart';
 import 'package:sochat_client/modules/media/media_service.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
 import 'package:sochat_client/so_ux/chat_controller.dart';
@@ -19,7 +21,8 @@ class InputField extends ConsumerWidget {
 
     final chatContoller = ref.watch(chatControllerProvider.notifier);
     final mediaService = ref.watch(mediaServiceProvider);
-    final selectedFiles = ref.watch(selectedFilesProvider);
+    final selectedFiles = ref.watch(selectedMediaProvider);
+    final keyService = ref.watch(keyServiceProvider.notifier);
 
     return Container(
       decoration: BoxDecoration(
@@ -48,14 +51,13 @@ class InputField extends ConsumerWidget {
                       onPressed: () {
                         final newList = [...selectedFiles];
                         newList.removeAt(index);
-
-                        ref.read(selectedFilesProvider.notifier).state = newList;
+                        ref.read(selectedMediaProvider.notifier).state = newList;
                         },
                           child: Row(
                             children: [
                               Padding(
                                 padding: const EdgeInsets.all(8.0),
-                                child: Text(selectedFiles[index].uri.pathSegments.last, textAlign: .left),
+                                child: Text(selectedFiles[index].file.uri.pathSegments.last, textAlign: .left),
                               ),
                             ],
                           ),
@@ -77,8 +79,14 @@ class InputField extends ConsumerWidget {
                     child: InkWell(
                       borderRadius: BorderRadius.circular(10),
                       onTap: () async {
+                        // Get files, converting them to my type for Media that contains ids
                         final files = await mediaService.getFiles();
-                        ref.read(selectedFilesProvider.notifier).state = files;
+                        final mediaFiles = files.map((f) => Media(f)).toList();
+                        ref.read(selectedMediaProvider.notifier).state = mediaFiles;
+
+                        // Upload media
+                        final ip = keyService.servers.entries.toList()[ref.read(selectedServerProvider)].value;
+                        mediaService.uploadMedia(ip, mediaFiles);
                       },
                       child: Icon(Icons.attach_file),
                     ),
