@@ -36,7 +36,7 @@ class MediaService {
     }
   }
 
-  Future<void> uploadMedia(String ip, List<Media> mediaFiles, {String? description}) async{
+  Future<void> uploadMedia(String ip, Media mediaFile, {String? description}) async{
 
     // TODO: CHANGE EVERYTHING TO DIO IN THE NEAR FUTURE
     // cuz Multipart method is not quite optimized
@@ -50,45 +50,50 @@ class MediaService {
 
     String fieldName = 'file';
 
-    // Add every file to request
-    for (var mediaFile in mediaFiles) {
-      final fileBytes = await mediaFile.file.readAsBytes();
+    final fileBytes = await mediaFile.file!.readAsBytes();
 
-      // Configure mimeType
-      // It will help client configure out how to display file when someone gets it
-      final mimeType = lookupMimeType(mediaFile.file.uri.pathSegments.last);
-      if (mimeType != null) {
-        if (mimeType.startsWith('image/')) {
-          fieldName = 'photo';
-        } else if (mimeType.startsWith('video/')) {
-          fieldName = 'video';
-        } else if (mimeType.startsWith('audio/')) {
-          fieldName = 'audio';
-        } else {
-          fieldName = 'document';
-        }
+    // Configure mimeType
+    // It will help client configure out how to display file when someone gets it
+    final mimeType = lookupMimeType(mediaFile.file!.uri.pathSegments.last);
+    if (mimeType != null) {
+      if (mimeType.startsWith('image/')) {
+        fieldName = 'photo';
+      } else if (mimeType.startsWith('video/')) {
+        fieldName = 'video';
+      } else if (mimeType.startsWith('audio/')) {
+        fieldName = 'audio';
+      } else {
+        fieldName = 'document';
       }
-
-      // Generating multipart file, it will make send files in request fragmented
-      var multipartFile = http.MultipartFile.fromBytes(
-          fieldName,
-          fileBytes,
-          filename: mediaFile.file.uri.pathSegments.last,
-          contentType: mimeType != null ? http.MediaType.parse(mimeType) : null
-      ); // And adding it to request
-      request.files.add(multipartFile);
-
     }
+
+    // Generating multipart file, it will make send files in request fragmented
+    var multipartFile = http.MultipartFile.fromBytes(
+        fieldName,
+        fileBytes,
+        filename: mediaFile.file!.uri.pathSegments.last,
+        contentType: mimeType != null ? http.MediaType.parse(mimeType) : null
+    ); // And adding it to request
+    request.files.add(multipartFile);
+
     // Finally send request
     var response = await request.send();
 
-
     // Debug code
     if (response.statusCode == 200) {
+      var responseBody = await response.stream.bytesToString();
+      mediaFile.mediaId = responseBody;
+      mediaFile.isLoaded = true;
       print('Loaded!');
     } else {
       print('Error: ${response.statusCode}');
     }
+  }
+
+  Future<void> resolveMediaBytes(String ip, Media media) async {
+    final url = "$ip/media/${media.mediaId}";
+    final response = await http.get(Uri.parse(url));
+    media.fileBytes = response.bodyBytes;
   }
 
 }

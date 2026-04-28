@@ -57,7 +57,7 @@ class InputField extends ConsumerWidget {
                             children: [
                               Padding(
                                 padding: const EdgeInsets.all(8.0),
-                                child: Text(selectedFiles[index].file.uri.pathSegments.last, textAlign: .left),
+                                child: Text(selectedFiles[index].file!.uri.pathSegments.last, textAlign: .left),
                               ),
                             ],
                           ),
@@ -79,14 +79,7 @@ class InputField extends ConsumerWidget {
                     child: InkWell(
                       borderRadius: BorderRadius.circular(10),
                       onTap: () async {
-                        // Get files, converting them to my type for Media that contains ids
-                        final files = await mediaService.getFiles();
-                        final mediaFiles = files.map((f) => Media(f)).toList();
-                        ref.read(selectedMediaProvider.notifier).state = mediaFiles;
-
-                        // Upload media
-                        final ip = keyService.servers.entries.toList()[ref.read(selectedServerProvider)].value;
-                        mediaService.uploadMedia(ip, mediaFiles);
+                        await chatContoller.requestMedia();
                       },
                       child: Icon(Icons.attach_file),
                     ),

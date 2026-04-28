@@ -7,6 +7,8 @@ import 'package:sochat_client/context/notifications/inapp_notifications_manager.
 import 'package:sochat_client/modules/chats/chat.dart';
 import 'package:sochat_client/modules/chats/chat_service.dart';
 import 'package:sochat_client/modules/chats/sender_key.dart';
+import 'package:sochat_client/modules/media/media.dart';
+import 'package:sochat_client/modules/media/media_service.dart';
 import 'package:sochat_client/modules/notifications/notifications_service.dart';
 import 'package:sochat_client/modules/users/user_service.dart';
 import 'package:sochat_client/modules/websocket/message_packet.dart';
@@ -21,7 +23,7 @@ import 'message.dart';
 
 
 final messageServiceProvider = StateNotifierProvider<MessageService, MessagesState>(
-      (ref) => MessageService(ref.read(webSocketProvider), ref.read(keyServiceProvider.notifier), ref.read(chatsServiceProvider.notifier), ref.read(userServiceProvider.notifier), ref.read(notificationsServiceProvider), ref),);
+      (ref) => MessageService(ref.read(webSocketProvider), ref.read(keyServiceProvider.notifier), ref.read(chatsServiceProvider.notifier), ref.read(userServiceProvider.notifier), ref.read(mediaServiceProvider),ref.read(notificationsServiceProvider), ref),);
 
 
 
@@ -34,12 +36,13 @@ class MessageService extends StateNotifier<MessagesState> {
   final KeyService _keyService;
   final ChatService _chatService;
   final UserService _userService;
+  final MediaService _mediaService;
   final NotificationsService _notificationsService;
 
   Ref ref;
   StreamSubscription? _subscription;
 
-  MessageService(this._webSocket, this._keyService, this._chatService, this._userService, this._notificationsService, this.ref)
+  MessageService(this._webSocket, this._keyService, this._chatService, this._userService, this._mediaService, this._notificationsService, this.ref)
       : super(MessagesState()) {
     startListen();
   }
@@ -92,15 +95,28 @@ class MessageService extends StateNotifier<MessagesState> {
     List<dynamic> messageList = jsonDecode(request.payload["messages"]);
 
 
-    for (final message in messageList.reversed){
+    for (final messageJson in messageList.reversed){
       try {
-        message['content'] = await _keyService.decryptWithAes(message['content'], chat.findChatKeyByVersion(message['keyVersion'])!.key);
+        messageJson['content'] = await _keyService.decryptWithAes(messageJson['content'], chat.findChatKeyByVersion(messageJson['keyVersion'])!.key);
 
-        User user = chat.participants.any((p) => p.user.id == message["senderId"])
-            ? chat.participants.firstWhere((p) => p.user.id == message["senderId"]).user
-            : ((await _userService.getUser(id: message["senderId"])));
-        addMessage(Message.fromJson(message, user), atStart: atStart);
+        User user = chat.participants.any((p) => p.user.id == messageJson["senderId"])
+            ? chat.participants.firstWhere((p) => p.user.id == messageJson["senderId"]).user
+            : ((await _userService.getUser(id: messageJson["senderId"])));
+
+        final List<dynamic> mediasJson = messageJson['mediaFiles'];
+        final List<Media> medias = [];
+        for (final mediaJson in mediasJson){
+          final ip = _keyService.servers.entries.toList()[ref.read(selectedServerProvider)].value;
+
+          final media = Media.fromJson(mediaJson);
+          _mediaService.resolveMediaBytes(ip, media);
+          medias.add(media);
+        }
+        Message message = Message.fromJsonWithMedia(messageJson, user, medias);
+
+        addMessage(message, atStart: atStart);
       }catch (e){
+        print(e);
         print("no");
       }
     }
@@ -115,7 +131,7 @@ class MessageService extends StateNotifier<MessagesState> {
   }
 
 
-  Future<void> sendMessage(String content, int? replyMessageId, Chat chat) async{
+  Future<void> sendMessage(String content, int? replyMessageId, List<Media> mediaFiles, Chat chat) async{
     String encryptedContent = await _keyService.encryptWithAes(content, chat.findLatestChatKey()!.key);
 
     for (SenderKey senderKey in chat.chatKeys){
@@ -125,6 +141,7 @@ class MessageService extends StateNotifier<MessagesState> {
     MessagePacket message = MessagePacket(type: "message_send", payload: {
       "content": encryptedContent,
       "replyMessageId": replyMessageId,
+      "media_files": jsonEncode(mediaFiles.map((m) => m.mediaId).toList()),
       "chatId": chat.id
     });
     final request = await _webSocket.sendRequest(message);
@@ -145,14 +162,24 @@ class MessageService extends StateNotifier<MessagesState> {
 
     messageJson['content'] = await _keyService.decryptWithAes(messageJson['content'], chat.findChatKeyByVersion(messageJson['keyVersion'])!.key);
 
+    final List<dynamic> mediasJson = messageJson['mediaFiles'];
+    final List<Media> medias = [];
+    for (final mediaJson in mediasJson){
+      final ip = _keyService.servers.entries.toList()[ref.read(selectedServerProvider)].value;
+
+      final media = Media.fromJson(mediaJson);
+      _mediaService.resolveMediaBytes(ip, media);
+      medias.add(media);
+    }
+
     late Message message;
     if (chat.participants.any((p) => p.user.id == messageJson["senderId"]!)){
-      message = Message.fromJson(messageJson, chat.participants.firstWhere((p) => p.user.id == messageJson["senderId"]!).user);
+      message = Message.fromJsonWithMedia(messageJson, chat.participants.firstWhere((p) => p.user.id == messageJson["senderId"]!).user, medias);
     }
     else {
       User sender = (await _userService.getUser(username: messageJson["senderId"]));
-      message = Message.fromJson(
-          jsonDecode(requestPacket.payload["message"]), sender);
+      message = Message.fromJsonWithMedia(
+          jsonDecode(requestPacket.payload["message"]), sender, medias);
     }
 
     print(requestPacket.payload["success"]);

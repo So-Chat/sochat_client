@@ -49,4 +49,28 @@ class Message {
     );
   }
 
+  factory Message.fromJsonWithMedia(Map<String, dynamic> json, User sender, List<Media> medias) {
+    final ts = json['timestamp'];
+    DateTime dateTime = DateTime(
+      ts[0],
+      ts[1],
+      ts[2],
+      ts[3],
+      ts[4],
+      ts[5],
+      (ts[6] / 1000000).round(),
+    );
+
+    return Message(
+      id: json['id'] as int,
+      chatId: json['chatId'] as int,
+      sender: sender,
+      replyMessageId: json['replyMessageId'] != null ? json['replyMessageId'] as int : null,
+      content: json['content'] as String,
+      timestamp: dateTime,
+      keyVersion: json['keyVersion'] as int,
+      mediaFiles: medias
+    );
+  }
+
 }

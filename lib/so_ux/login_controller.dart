@@ -107,6 +107,9 @@ class LoginController extends StateNotifier<LoginControllerState> {
     webSocketService.connect();
 
     String token = await ref.read(localStorageServiceProvider.notifier).getSessionAndSetSelectedKeys();
+    print("got token");
+
+    _authService.token = token;
 
     await webSocketService.authenticate(token);
 

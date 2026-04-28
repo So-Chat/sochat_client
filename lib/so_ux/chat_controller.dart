@@ -10,7 +10,9 @@ import 'package:sochat_client/modules/chats/chat_service.dart';
 import 'package:sochat_client/modules/chats/participant.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/friends/friends_service.dart';
+import 'package:sochat_client/modules/keys/key_service.dart';
 import 'package:sochat_client/modules/media/media.dart';
+import 'package:sochat_client/modules/media/media_service.dart';
 import 'package:sochat_client/modules/messages/message.dart';
 import 'package:sochat_client/modules/messages/message_service.dart';
 import 'package:sochat_client/so_ui/notifications/so_notification.dart';
@@ -20,8 +22,10 @@ final chatControllerProvider = StateNotifierProvider<ChatController, ChatControl
   final authService = ref.read(authServiceProvider);
   final messageService = ref.read(messageServiceProvider.notifier);
   final friendsService = ref.read(friendsServiceProvider.notifier);
+  final mediaService = ref.read(mediaServiceProvider);
+  final keyService = ref.read(keyServiceProvider.notifier);
 
-  return ChatController(chatService, authService, messageService, friendsService ,ref);
+  return ChatController(chatService, authService, messageService, friendsService, mediaService, keyService, ref);
 });
 
 final selectedChatProvider = StateProvider<Chat?>((ref) => null);
@@ -44,9 +48,11 @@ class ChatController extends StateNotifier<ChatControllerState> {
   MessageService _messageService;
   FriendsService _friendsService;
   AuthService _authService;
+  MediaService _mediaService;
+  KeyService _keyService;
   Ref ref;
 
-  ChatController(this._chatService, this._authService, this._messageService, this._friendsService, this.ref) : super(ChatControllerState());
+  ChatController(this._chatService, this._authService, this._messageService, this._friendsService, this._mediaService, this._keyService, this.ref) : super(ChatControllerState());
 
   Future<void> getFriendsList() async {
     await _friendsService.getRelativesList();
@@ -88,7 +94,25 @@ class ChatController extends StateNotifier<ChatControllerState> {
     if (["", " "].any((c) => c == content)) { return; }
 
     final selectedChat = ref.read(selectedChatProvider.notifier).state;
-    await _messageService.sendMessage(content, null, selectedChat!);
+    final selectedMedia = ref.read(selectedMediaProvider);
+    
+    if (!selectedMedia.every((m) => m.isLoaded)) { return; };
+    
+    await _messageService.sendMessage(content, null, selectedMedia, selectedChat!);
+  }
+
+  Future<void> requestMedia() async {
+    // Get files, converting them to my type for Media that contains ids
+    final files = await _mediaService.getFiles();
+    final mediaFiles = files.map((f) => Media(file: f)).toList();
+    ref.read(selectedMediaProvider.notifier).state = mediaFiles;
+
+    // Upload media
+    final ip = _keyService.servers.entries.toList()[ref.read(selectedServerProvider)].value;
+    for (var mediaFile in mediaFiles) {
+      _mediaService.uploadMedia(ip, mediaFile);
+    }
+    ref.read(selectedMediaProvider.notifier).state = mediaFiles;
   }
 
   Future<void> setLastReadMessage(int id, int chatId) async {
