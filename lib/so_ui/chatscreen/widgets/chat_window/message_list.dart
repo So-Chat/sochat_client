@@ -12,6 +12,7 @@ import 'package:sochat_client/extenstions/utils.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
 import 'package:sochat_client/modules/messages/message.dart';
+import 'package:sochat_client/so_ui/common/sub_buttons/downloadable_file.dart';
 import 'package:sochat_client/so_ux/chat_controller.dart';
 
 
@@ -152,15 +153,13 @@ class MessageListState extends ConsumerState<MessageList>{
                                     ),
                                     if (message.sender.id == currentUser!.id)
                                     Text(selectedChat.participants.any((p) => p.lastReadMessageId >= message.id && p.user.id != currentUser!.id) ? "Read" : "Unread", style: Theme.of(context).textTheme.labelSmall,),
-                                    Text(message.id.toString()),
-                                    //message.mediaFiles != null && message.mediaFiles!.isNotEmpty ? Text(message.mediaFiles!.first.fileName!) : Text("no media"),
-
                                   ],
                                 ),
-                                Text(
+                                if (!["", " "].any((c) => c == message.content)) Text(
                                   message.content,
                                   style: Theme.of(context).textTheme.bodyMedium,
                                 ),
+
                                 if (message.mediaFiles != null && message.mediaFiles!.isNotEmpty)
                                   ListView.builder(
                                     shrinkWrap: true,
@@ -169,12 +168,13 @@ class MessageListState extends ConsumerState<MessageList>{
                                     itemBuilder: (context, index) {
                                       final file = message.mediaFiles![index];
                                       if (file.mimeType!.contains("image")) {
-                                        return Image.network(
-                                          "${ref.read(keyServiceProvider.notifier).servers.entries.toList()[ref.read(selectedServerProvider)].value}/media/${file.mediaId!}",
-                                            width: 160, height: 160);
+                                          return Image.network(
+                                              "${ref.read(keyServiceProvider.notifier).servers.entries.toList()[ref.read(selectedServerProvider)].value}/media/${file.mediaId!}",
+                                              alignment: Alignment.topLeft,
+                                              width: 160, height: 160);
                                       }
                                       else {
-                                        return Text(file.fileName!);
+                                        return DownloadableFile(file);
                                       }
                                     },
                                   )

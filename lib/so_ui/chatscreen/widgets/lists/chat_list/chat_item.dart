@@ -121,9 +121,11 @@ class ChatItem extends ConsumerWidget {
                         children: [
                           Expanded(
                             child: lastMessage != null ? Text(
-                                  lastMessage!.sender.id == clientId
+                              (lastMessage!.sender.id == clientId
                                   ? "You: ${lastMessage!.content}"
-                                  : "${lastMessage!.sender.username}: ${lastMessage!.content}",
+                                  : "${lastMessage!.sender.username}: ${lastMessage!.content}") +
+                                  (lastMessage!.mediaFiles != null && lastMessage!.mediaFiles!.isNotEmpty
+                                      ? "${lastMessage!.mediaFiles!.first.fileName}" : ""),
                               overflow: TextOverflow.ellipsis,
                               maxLines: 1,
                               style: Theme.of(context).textTheme.labelMedium,

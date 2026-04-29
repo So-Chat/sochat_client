@@ -1,3 +1,5 @@
+import 'dart:math';
+
 class Utils {
 
   static DateTime currentTime = DateTime.now();
@@ -24,6 +26,20 @@ class Utils {
     }
 
     return dateString;
+  }
+
+  static String configureFileSize(int bytes) {
+    if (bytes <= 0) return "0 B";
+    const suffixes = ["B", "KB", "MB", "GB", "TB"];
+
+    // log(bytes) / log(1024) gives us degree of 1024
+    int i = (log(bytes) / log(1024)).floor();
+
+    // Result number
+    double size = bytes / pow(1024, i);
+
+    // if number is integer, return without decimals, if double return with them
+    return "${size.toStringAsFixed(size == size.truncate() ? 0 : 1)} ${suffixes[i]}";
   }
 
 }

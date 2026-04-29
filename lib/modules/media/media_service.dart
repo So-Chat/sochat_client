@@ -36,9 +36,32 @@ class MediaService {
     }
   }
 
+
+
+  Future<void> downloadMedia(String ip, Media mediaFile, String savePath) async {
+    var url = Uri.parse("$ip/media/${mediaFile.mediaId}");
+    var request = http.MultipartRequest("GET", url);
+
+    var response = await request.send();
+
+    if (response.statusCode == 200) {
+      File file = File(savePath);
+
+      print("create sink");
+      final IOSink sink = file.openWrite();
+      await response.stream.pipe(sink);
+      await sink.close();
+
+      print("File saved to: $savePath");
+    } else {
+      print("Download failed with status: ${response.statusCode}");
+    }
+  }
+
   Future<void> uploadMedia(String ip, Media mediaFile, {String? description}) async{
 
     // TODO: CHANGE EVERYTHING TO DIO IN THE NEAR FUTURE
+    // Maybe i don't want to do that because i will write stream where i will decode data with AES :P
     // cuz Multipart method is not quite optimized
 
 

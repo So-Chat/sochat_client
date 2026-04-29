@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:sochat_client/context/notifications/inapp_notifications_manager.dart';
@@ -91,14 +92,15 @@ class ChatController extends StateNotifier<ChatControllerState> {
   }
 
   Future<void> sendMessage(String content) async {
-    if (["", " "].any((c) => c == content)) { return; }
+    final selectedMedia = ref.read(selectedMediaProvider);
+
+    if (["", " "].any((c) => c == content) && selectedMedia.isEmpty || !selectedMedia.every((m) => m.isLoaded)) { return; }
 
     final selectedChat = ref.read(selectedChatProvider.notifier).state;
-    final selectedMedia = ref.read(selectedMediaProvider);
-    
-    if (!selectedMedia.every((m) => m.isLoaded)) { return; };
+
     
     await _messageService.sendMessage(content, null, selectedMedia, selectedChat!);
+    ref.read(selectedMediaProvider.notifier).state = [];
   }
 
   Future<void> requestMedia() async {
@@ -117,6 +119,17 @@ class ChatController extends StateNotifier<ChatControllerState> {
 
   Future<void> setLastReadMessage(int id, int chatId) async {
     await _messageService.readLastMessage(id);
+  }
+
+  Future<void> saveFile(Media media) async {
+    String? outputFile = await FilePicker.saveFile(
+      dialogTitle: 'Select where to save your file',
+      fileName: media.fileName,
+    );
+    if (outputFile == null) return;
+
+    final ip = _keyService.servers.entries.toList()[ref.read(selectedServerProvider)].value;
+    _mediaService.downloadMedia(ip, media, outputFile);
   }
 
 }
