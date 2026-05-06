@@ -13,13 +13,15 @@ class Media {
   int? height;
   int? length;
 
+  String? nonce;
+
   File? file;
   Uint8List? fileBytes;
 
   bool isLoaded = false;
 
 
-  Media({this.mediaId, this.senderId, this.mimeType, this.fileName, this.fileSize, this.width, this.height, this.length, this.file, this.fileBytes});
+  Media({this.mediaId, this.senderId, this.mimeType, this.fileName, this.fileSize, this.width, this.height, this.length, this.file, this.fileBytes, this.nonce});
 
   factory Media.fromJson(Map<String, dynamic> json) {
     return Media(
@@ -31,6 +33,7 @@ class Media {
       width: json['width'],
       height: json['height'],
       length: json['length'],
+      nonce: json['nonce'],
     );
   }
 }

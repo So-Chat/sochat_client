@@ -44,50 +44,36 @@ class MediaService {
 
 
   Future<void> downloadMedia(String ip, Media mediaFile, String savePath, {SecretKey? aesKey}) async {
-    var url = Uri.parse("$ip/media/${mediaFile.mediaId}");
-    var request = http.MultipartRequest("GET", url);
+    final url = Uri.parse("$ip/media/${mediaFile.mediaId}");
+    final request = http.Request("GET", url);
 
-    var response = await request.send();
+    final response = await request.send();
 
     if (response.statusCode == 200) {
       File file = File(savePath);
-
-      int loaded = 0;
-
-      print("create sink");
       final IOSink sink = file.openWrite();
 
       if (aesKey != null) {
         final algorithm = AesCtr.with256bits(macAlgorithm: MacAlgorithm.empty);
-        late final List<int> nonce;
-        response.stream.transform(
-          StreamTransformer.fromHandlers(
-            handleData: (chunk, sink) {
-              if (loaded == 0){
-                nonce = chunk;
-              }
-            }
-          )
+        final decryptedStream = algorithm.decryptStream(
+          response.stream,
+          secretKey: aesKey,
+          nonce: base64Decode(mediaFile.nonce!),
+          mac: Mac.empty,
         );
-        algorithm.decryptStream(response.stream, secretKey: aesKey, nonce: nonce, mac: Mac.empty);
+
+        await decryptedStream.pipe(sink);
+        await sink.close();
+      } else {
+        await response.stream.pipe(sink);
+        await sink.close();
       }
-
-      await response.stream.pipe(sink);
-      await sink.close();
-
-      print("File saved to: $savePath");
     } else {
       print("Download failed with status: ${response.statusCode}");
     }
   }
 
   Future<void> uploadMedia(String ip, Media mediaFile, {String? description, SecretKey? aesKey}) async{
-
-    // TODO: CHANGE EVERYTHING TO DIO IN THE NEAR FUTURE
-    // Maybe i don't want to do that because i will write stream where i will decode data with AES :P
-    // cuz Multipart method is not quite optimized
-
-
     var url = Uri.parse((ip + '/media').toString());
     var request = await http.MultipartRequest("POST", url);
 
@@ -108,49 +94,27 @@ class MediaService {
       final algorithm = AesCtr.with256bits(macAlgorithm: MacAlgorithm.empty);
       final nonce = algorithm.newNonce();
 
+      request.headers['x-nonce'] = base64Encode(nonce);
+
       final encryptedStream = algorithm.encryptStream(
         file.openRead(),
         secretKey: aesKey,
         nonce: nonce,
-        onMac: (mac) {}
+        onMac: (_) {},
       );
 
-      encryptedStream.transform(
-        StreamTransformer.fromHandlers(
-          handleData: (chunk, sink) async {
-            if (uploadedState == 0){
-              sink.add(nonce);
-              length += nonce.length;
-              print('Uploaded nonce: $uploadedState');
-            }
-            uploadedState += chunk.length;
-            print('Uploaded encrypted: $uploadedState');
-            sink.add(chunk);
-          }
-        )
+      progressStream = buildProgressStream(
+        encryptedStream,
+        isEncrypted: true,
+        uploadedState: uploadedState,
       );
-
-      progressStream = encryptedStream.map((chunk) {
-
-        return chunk;
-      });
-
     } else {
-      progressStream = stream.transform(
-        StreamTransformer.fromHandlers(
-          handleData: (List<int> chunk, sink) async {
-            uploadedState += chunk.length;
-            print('Uploaded (plain): $uploadedState / $length');
-
-            sink.add(chunk);
-          },
-          handleDone: (sink) {
-            sink.close();
-          },
-        ),
+      progressStream = buildProgressStream(
+        stream,
+        isEncrypted: false,
+        uploadedState: uploadedState,
       );
     }
-
 
     // Configure mimeType
     // It will help client configure out how to display file when someone gets it
@@ -197,6 +161,29 @@ class MediaService {
     final url = "$ip/media/${media.mediaId}";
     final response = await http.get(Uri.parse(url));
     media.fileBytes = response.bodyBytes;
+  }
+
+  Stream<List<int>> buildProgressStream(
+      Stream<List<int>> source, {
+        required bool isEncrypted,
+        AesCtr? algorithm,
+        List<int>? secretKey,
+        List<int>? nonce,
+        required int uploadedState,
+      }) {
+    return source.transform(
+      StreamTransformer.fromHandlers(
+        handleData: (chunk, sink) {
+          uploadedState += chunk.length;
+
+          print(
+            'Uploaded${isEncrypted ? " encrypted" : ""}: $uploadedState',
+          );
+
+          sink.add(chunk);
+        },
+      ),
+    );
   }
 
 }

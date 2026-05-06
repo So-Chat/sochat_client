@@ -129,7 +129,7 @@ class ChatController extends StateNotifier<ChatControllerState> {
     if (outputFile == null) return;
 
     final ip = _keyService.servers.entries.toList()[ref.read(selectedServerProvider)].value;
-    _mediaService.downloadMedia(ip, media, outputFile);
+    _mediaService.downloadMedia(ip, media, outputFile, aesKey: ref.read(selectedChatProvider.notifier).state?.chatKeys.last.key);
   }
 
 }
