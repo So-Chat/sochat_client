@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:typed_data';
 
 class Utils {
 
@@ -40,6 +41,12 @@ class Utils {
 
     // if number is integer, return without decimals, if double return with them
     return "${size.toStringAsFixed(size == size.truncate() ? 0 : 1)} ${suffixes[i]}";
+  }
+
+  static List<int> int32ToBytes(int value) {
+    final b = ByteData(4);
+    b.setUint32(0, value, Endian.big);
+    return b.buffer.asUint8List();
   }
 
 }

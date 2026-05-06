@@ -132,7 +132,7 @@ class MessageService extends StateNotifier<MessagesState> {
 
 
   Future<void> sendMessage(String content, int? replyMessageId, List<Media> mediaFiles, Chat chat) async{
-    String encryptedContent = await _keyService.encryptWithAes(content, chat.findLatestChatKey()!.key);
+    String encryptedContent = await _keyService.encryptStringWithAesToString(content, chat.findLatestChatKey()!.key);
 
     for (SenderKey senderKey in chat.chatKeys){
       print("senderkey: ${senderKey.keyVersion}: ${senderKey.key}");

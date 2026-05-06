@@ -112,7 +112,7 @@ class ChatController extends StateNotifier<ChatControllerState> {
     // Upload media
     final ip = _keyService.servers.entries.toList()[ref.read(selectedServerProvider)].value;
     for (var mediaFile in mediaFiles) {
-      _mediaService.uploadMedia(ip, mediaFile);
+      _mediaService.uploadMedia(ip, mediaFile, aesKey: ref.read(selectedChatProvider.notifier).state?.chatKeys.last.key);
     }
     ref.read(selectedMediaProvider.notifier).state = mediaFiles;
   }

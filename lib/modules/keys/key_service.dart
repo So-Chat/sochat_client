@@ -325,11 +325,22 @@ class KeyService extends StateNotifier<KeyServiceState> {
     return SecretKey(decryptedBytes);
   }
 
-  Future<String> encryptWithAes(String content, SecretKey aesKey) async {
+  Future<String> encryptStringWithAesToString(String content, SecretKey aesKey) async {
+    final contentBytes = utf8.encode(content);
+    return base64Encode(await encryptWithAes(contentBytes, aesKey));
+  }
+  Future<List<int>> encryptStringWithAesToBytes(String content, SecretKey aesKey) async {
+    final contentBytes = utf8.encode(content);
+    return await encryptWithAes(contentBytes, aesKey);
+  }
+  Future<String> encryptBytesWithAesToString(List<int> contentBytes, SecretKey aesKey) async {
+    return base64Encode(await encryptWithAes(contentBytes, aesKey));
+  }
+
+
+  Future<List<int>> encryptWithAes(List<int> contentBytes, SecretKey aesKey) async {
     final algorithm = AesGcm.with256bits();
     final nonce = algorithm.newNonce();
-
-    final contentBytes = utf8.encode(content);
 
     final secretBox = await algorithm.encrypt(
       contentBytes,
@@ -343,9 +354,9 @@ class KeyService extends StateNotifier<KeyServiceState> {
       ...secretBox.mac.bytes,
     ];
 
-
-    return base64Encode(combined);
+    return combined;
   }
+
 
   Future<String> decryptWithAes(String base64EncodedContent, SecretKey aesKey) async {
     try {
