@@ -3,6 +3,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
+import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 import 'package:file_picker/file_picker.dart';
@@ -44,33 +46,25 @@ class MediaService {
 
 
   Future<void> downloadMedia(String ip, Media mediaFile, String savePath, {SecretKey? aesKey}) async {
-    final url = Uri.parse("$ip/media/${mediaFile.mediaId}");
-    final request = http.Request("GET", url);
+    final stream = await _openMediaStream(ip, mediaFile, aesKey: aesKey,);
 
-    final response = await request.send();
+    final file = File(savePath);
+    final sink = file.openWrite();
 
-    if (response.statusCode == 200) {
-      File file = File(savePath);
-      final IOSink sink = file.openWrite();
+    await stream.pipe(sink);
+    await sink.close();
+  }
 
-      if (aesKey != null) {
-        final algorithm = AesCtr.with256bits(macAlgorithm: MacAlgorithm.empty);
-        final decryptedStream = algorithm.decryptStream(
-          response.stream,
-          secretKey: aesKey,
-          nonce: base64Decode(mediaFile.nonce!),
-          mac: Mac.empty,
-        );
+  Future<Uint8List>? loadPhotoBytes(
+      Media mediaFile, WidgetRef ref, {
+        SecretKey? aesKey,
+      }) async {
+    final ip = _keyService.servers.entries.toList()[ref.read(selectedServerProvider)].value;
 
-        await decryptedStream.pipe(sink);
-        await sink.close();
-      } else {
-        await response.stream.pipe(sink);
-        await sink.close();
-      }
-    } else {
-      print("Download failed with status: ${response.statusCode}");
-    }
+    final stream = await _openMediaStream(ip, mediaFile, aesKey: aesKey);
+
+    final bytes = await stream.expand((x) => x).toList();
+    return Uint8List.fromList(bytes);
   }
 
   Future<void> uploadMedia(String ip, Media mediaFile, {String? description, SecretKey? aesKey}) async{
@@ -85,36 +79,24 @@ class MediaService {
     final file = mediaFile.file!;
     int length = await file.length();
 
-    final stream = file.openRead();
     int uploadedState = 0;
 
-    late final Stream<List<int>> progressStream;
+    late final Stream<List<int>> fileStream;
 
     if (aesKey != null) {
-      final algorithm = AesCtr.with256bits(macAlgorithm: MacAlgorithm.empty);
-      final nonce = algorithm.newNonce();
+      final encryptData = _keyService.ctrEncryptStream(file.openRead(), aesKey);
+      request.headers['x-nonce'] = base64Encode(encryptData.nonce);
 
-      request.headers['x-nonce'] = base64Encode(nonce);
-
-      final encryptedStream = algorithm.encryptStream(
-        file.openRead(),
-        secretKey: aesKey,
-        nonce: nonce,
-        onMac: (_) {},
-      );
-
-      progressStream = buildProgressStream(
-        encryptedStream,
-        isEncrypted: true,
-        uploadedState: uploadedState,
-      );
+      fileStream = encryptData.stream;
     } else {
-      progressStream = buildProgressStream(
-        stream,
-        isEncrypted: false,
-        uploadedState: uploadedState,
-      );
+      fileStream = file.openRead();
     }
+
+    final progressStream = buildProgressStream(
+      fileStream,
+      isEncrypted: aesKey != null,
+      uploadedState: uploadedState,
+    );
 
     // Configure mimeType
     // It will help client configure out how to display file when someone gets it
@@ -184,6 +166,31 @@ class MediaService {
         },
       ),
     );
+  }
+
+  Future<Stream<List<int>>> _openMediaStream(
+      String ip,
+      Media mediaFile, {
+        SecretKey? aesKey,
+      }) async {
+    final url = Uri.parse("$ip/media/${mediaFile.mediaId}");
+    final request = http.Request("GET", url);
+
+    final response = await request.send();
+
+    if (response.statusCode != 200) {
+      throw Exception("Request failed: ${response.statusCode}");
+    }
+
+    if (aesKey != null) {
+      return _keyService.ctrDecryptStream(
+        response.stream,
+        aesKey,
+        base64Decode(mediaFile.nonce!),
+      );
+    }
+
+    return response.stream;
   }
 
 }

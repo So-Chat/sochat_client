@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:http/http.dart';
 import 'package:sochat_client/modules/keys/key.dart';
 import 'dart:math';
 
@@ -355,6 +356,34 @@ class KeyService extends StateNotifier<KeyServiceState> {
     ];
 
     return combined;
+  }
+
+  Stream<List<int>> ctrDecryptStream(ByteStream stream, SecretKey secretKey, Uint8List nonce) {
+    final algorithm = AesCtr.with256bits(macAlgorithm: MacAlgorithm.empty);
+    return algorithm.decryptStream(
+      stream,
+      secretKey: secretKey,
+      nonce: nonce,
+      mac: Mac.empty,
+    );
+  }
+
+
+  // I REALLY DON'T WANT TO MAKE A WHOLE NEW TYPE FOR JUST THAT METHOD :crying:
+  ({Stream<List<int>> stream, List<int> nonce}) ctrEncryptStream(Stream<List<int>> fileStream, SecretKey secretKey) {
+    final algorithm = AesCtr.with256bits(macAlgorithm: MacAlgorithm.empty);
+    final nonce = algorithm.newNonce();
+
+    final encryptStream = algorithm.encryptStream(
+      fileStream,
+      secretKey: secretKey,
+      nonce: nonce,
+      onMac: (_) {},
+    );
+
+    return (
+      stream: encryptStream, nonce: nonce
+    );
   }
 
 

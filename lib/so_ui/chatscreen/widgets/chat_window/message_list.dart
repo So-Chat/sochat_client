@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +12,7 @@ import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:sochat_client/extenstions/utils.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
+import 'package:sochat_client/modules/media/media_service.dart';
 import 'package:sochat_client/modules/messages/message.dart';
 import 'package:sochat_client/so_ui/common/sub_buttons/downloadable_file.dart';
 import 'package:sochat_client/so_ux/chat_controller.dart';
@@ -95,6 +97,8 @@ class MessageListState extends ConsumerState<MessageList>{
     final selectedChat = ref.watch(selectedChatProvider);
     final authService = ref.watch(authServiceProvider);
     final currentUser = ref.watch(currentUserProvider);
+    final mediaService = ref.watch(mediaServiceProvider);
+    final keyService = ref.watch(keyServiceProvider);
 
     messageMap[selectedChat!.id] ??= [];
     return Expanded(
@@ -166,16 +170,48 @@ class MessageListState extends ConsumerState<MessageList>{
                                     physics: const NeverScrollableScrollPhysics(),
                                     itemCount: message.mediaFiles!.length,
                                     itemBuilder: (context, index) {
+                                      
                                       final file = message.mediaFiles![index];
                                       if (file.mimeType!.contains("image")) {
-                                          return Image.network(
-                                              "${ref.read(keyServiceProvider.notifier).servers.entries.toList()[ref.read(selectedServerProvider)].value}/media/${file.mediaId!}",
+                                        return FutureBuilder<Uint8List>(
+                                          future: mediaService.loadPhotoBytes(
+                                            file, ref, aesKey: ref.read(selectedChatProvider.notifier).state?.chatKeys.last.key
+                                          ),
+                                          builder: (context, snapshot) {
+
+                                            if (snapshot.connectionState == ConnectionState.waiting) {
+                                              return const SizedBox(
+                                                width: 160,
+                                                height: 160,
+                                                child: Center(child: CircularProgressIndicator()),
+                                              );
+                                            }
+
+                                            if (snapshot.hasError) {
+                                              return const Icon(Icons.broken_image);
+                                            }
+
+                                            if (!snapshot.hasData || snapshot.data == null) {
+                                              return const SizedBox(
+                                                width: 160,
+                                                height: 160,
+                                              );
+                                            }
+
+                                            return Image.memory(
+                                              snapshot.data!,
                                               alignment: Alignment.topLeft,
-                                              width: 160, height: 160);
+                                              width: 160,
+                                              height: 160,
+                                              fit: BoxFit.scaleDown
+                                            );
+                                          },
+                                        );
                                       }
                                       else {
                                         return DownloadableFile(file);
                                       }
+
                                     },
                                   )
 
