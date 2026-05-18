@@ -21,7 +21,7 @@ final notificationsProvider = FutureProvider<FlutterLocalNotificationsPlugin>((r
 
   const windowsSettings = WindowsInitializationSettings(
     appName: 'SoChat',
-    appUserModelId: 'com.example.sochat',
+    appUserModelId: 'com.yomirein.sochat',
     guid: 'ba2e3097-82e8-44ef-b094-02e3f5255817',
   );
 

@@ -338,6 +338,11 @@ class _SoDesignPageState extends ConsumerState<SoDesignPage> with TrayListener {
     keyService = ref.read(keyServiceProvider.notifier);
     localStorageService = ref.read(localStorageServiceProvider.notifier);
     loadSettings();
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginScreen()),
+    );
   }
 
   void loadSettings() async {

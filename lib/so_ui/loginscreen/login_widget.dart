@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
@@ -101,37 +102,42 @@ class LoginPageWidget extends ConsumerState<LoginWidget> {
                   setError("Unknown error: $e");
                 }
               }),
-              Row(
+              if (kDebugMode) Column(
                 children: [
-                  LoginButton(text: "Kafka", color: context.colors.critical, onTap: () async {
-                    widget.usernameController.text = "kafka";
-                    ref.read(keyServiceProvider.notifier).parseProfiles('{"profile1":{"ed25519publicKey":"WE6YkhFUBrteC+3Z5kXQ98HbR+OxDZEoglpDnGe58i4=","ed25519privateKey":"fPIX2aL/xfu3rDDV0FnVgvpPCiIjaJZ5C5UvTB+LjJk="}}');
-                    ref.read(selectedProfileProvider.notifier).state = keyService.profiles.length-1;
-                    loginController.login(context, widget.usernameController.text,
-                        ref.read(selectedProfileProvider), ref.read(selectedServerProvider), ref);
+                  Row(
+                    children: [
+                      LoginButton(text: "Kafka", color: context.colors.critical, onTap: () async {
+                        widget.usernameController.text = "kafka";
+                        ref.read(keyServiceProvider.notifier).parseProfiles('{"profile1":{"ed25519publicKey":"WE6YkhFUBrteC+3Z5kXQ98HbR+OxDZEoglpDnGe58i4=","ed25519privateKey":"fPIX2aL/xfu3rDDV0FnVgvpPCiIjaJZ5C5UvTB+LjJk="}}');
+                        ref.read(selectedProfileProvider.notifier).state = keyService.profiles.length-1;
+                        loginController.login(context, widget.usernameController.text,
+                            ref.read(selectedProfileProvider), ref.read(selectedServerProvider), ref);
 
-                  }),
-                  LoginButton(text: "Silver", color: context.colors.critical, onTap: () {
-                    widget.usernameController.text = "silver";
-                    ref.read(keyServiceProvider.notifier).parseProfiles('{"profile2":{"ed25519publicKey":"rIO/d0h1lLIiy0oUNhReQncJku8+jN8cLNVN1594hbg=","ed25519privateKey":"n50jTg/3yw69h53e5Q5e1yuRsfcMUxN4YPXFSvE8fu0="}}');
-                    ref.read(selectedProfileProvider.notifier).state = keyService.profiles.length - 1;
-                    loginController.login(context, widget.usernameController.text,
-                        ref.read(selectedProfileProvider), ref.read(selectedServerProvider), ref);
-                  }),
-                  LoginButton(text: "hero", color: context.colors.critical, onTap: () {
-                    widget.usernameController.text = "hero";
-                    ref.read(keyServiceProvider.notifier).parseProfiles('{"profile2":{"ed25519publicKey":"d7u94NKVtO7vk/llLvMw+sLkTprYE1fIcq6WoDcgTQ4=","ed25519privateKey":"kcVXn/UNBwz0GcnT5idmFkL60FobvugpB5exYDQh6d0="}}');
-                    ref.read(selectedProfileProvider.notifier).state = keyService.profiles.length - 1;
-                    loginController.login(context, widget.usernameController.text,
-                        ref.read(selectedProfileProvider), ref.read(selectedServerProvider), ref);
-                  }),
-                  LoginButton(text: "Build", color: context.colors.textSecondary, onTap: () { ref.read(localStorageServiceProvider.notifier).buildSettingsJSON(); }),
-                  LoginButton(text: "Save", color: context.colors.textSecondary, onTap: () { ref.read(localStorageServiceProvider.notifier).saveSettings(); }),
-                  LoginButton(text: "Load", color: context.colors.textSecondary, onTap: () { ref.read(localStorageServiceProvider.notifier).loadSettings(); }),
-                  LoginButton(text: "Purge", color: context.colors.textSecondary, onTap: () { ref.read(localStorageServiceProvider.notifier).purgeData(); }),
+                      }),
+                      LoginButton(text: "Silver", color: context.colors.critical, onTap: () {
+                        widget.usernameController.text = "silver";
+                        ref.read(keyServiceProvider.notifier).parseProfiles('{"profile2":{"ed25519publicKey":"rIO/d0h1lLIiy0oUNhReQncJku8+jN8cLNVN1594hbg=","ed25519privateKey":"n50jTg/3yw69h53e5Q5e1yuRsfcMUxN4YPXFSvE8fu0="}}');
+                        ref.read(selectedProfileProvider.notifier).state = keyService.profiles.length - 1;
+                        loginController.login(context, widget.usernameController.text,
+                            ref.read(selectedProfileProvider), ref.read(selectedServerProvider), ref);
+                      }),
+                      LoginButton(text: "hero", color: context.colors.critical, onTap: () {
+                        widget.usernameController.text = "hero";
+                        ref.read(keyServiceProvider.notifier).parseProfiles('{"profile2":{"ed25519publicKey":"d7u94NKVtO7vk/llLvMw+sLkTprYE1fIcq6WoDcgTQ4=","ed25519privateKey":"kcVXn/UNBwz0GcnT5idmFkL60FobvugpB5exYDQh6d0="}}');
+                        ref.read(selectedProfileProvider.notifier).state = keyService.profiles.length - 1;
+                        loginController.login(context, widget.usernameController.text,
+                            ref.read(selectedProfileProvider), ref.read(selectedServerProvider), ref);
+                      }),
+                      LoginButton(text: "Build", color: context.colors.textSecondary, onTap: () { ref.read(localStorageServiceProvider.notifier).buildSettingsJSON(); }),
+                      LoginButton(text: "Save", color: context.colors.textSecondary, onTap: () { ref.read(localStorageServiceProvider.notifier).saveSettings(); }),
+                      LoginButton(text: "Load", color: context.colors.textSecondary, onTap: () { ref.read(localStorageServiceProvider.notifier).loadSettings(); }),
+                      LoginButton(text: "Purge", color: context.colors.textSecondary, onTap: () { ref.read(localStorageServiceProvider.notifier).purgeData(); }),
+                    ],
+                  ),
+                  SoButton(color: context.colors.textSecondary, onPressed: () { ref.read(settingsControllerProvider.notifier).changeTheme(); }, child:Text("Theme")),
                 ],
               ),
-              SoButton(color: context.colors.textSecondary, onPressed: () { ref.read(settingsControllerProvider.notifier).changeTheme(); }, child:Text("Theme")),
+
               
             ],
           )

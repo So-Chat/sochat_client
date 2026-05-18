@@ -39,6 +39,9 @@ class WebSocketService{
   final _messagesController = StreamController<MessagePacket>.broadcast();
   Stream<MessagePacket> get messagesMessages => _messagesController.stream;
 
+  final _callController = StreamController<MessagePacket>.broadcast();
+  Stream<MessagePacket> get callMessages => _callController.stream;
+
   final _pendingRequests = <String, Completer>{};
   Timer? _pingTimer;
   Ref _ref;
@@ -54,6 +57,7 @@ class WebSocketService{
     _chatsController.close();
     _usersController.close();
     _messagesController.close();
+    _callController.close();
 
     channel?.sink.close(1000);
     channel = null;
@@ -130,7 +134,15 @@ class WebSocketService{
         case "message_delete":{
           _messagesController.add(messagg);
           break;
-      }
+        }
+        case "call_end":
+        case "call_ice":
+        case "call_offer":
+        case "call_answer":
+        case "call_accept":{
+            _callController.add(messagg);
+            break;
+        }
         default:
           print("Необработанный тип: ${messagg.type}");
       }
