@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -59,6 +60,8 @@ class LocalStorageService extends StateNotifier<LocalStorageServiceState>{
 
   // Loading settings
   Future<void> loadSettings() async {
+    if (kDebugMode) return;
+
     String? data = await storage.read(key: "settings");
     print("loaded data: $data");
     if (data != null) {
@@ -89,10 +92,12 @@ class LocalStorageService extends StateNotifier<LocalStorageServiceState>{
 
   // Saving Theme, Profiles and Servers with selected profiles and servers
   Future<void> saveSettings() async {
+    if (kDebugMode) return;
     await storage.write(key: "settings", value: buildSettingsJSON());
   }
 
   Future<void> saveSession() async {
+    if (kDebugMode) return;
     final data = {
       "token": _ref.read(authServiceProvider).token,
       "selected_server": _ref.read(selectedServerProvider),
@@ -102,6 +107,8 @@ class LocalStorageService extends StateNotifier<LocalStorageServiceState>{
   }
 
   Future<String> getSessionAndSetSelectedKeys() async {
+    if (kDebugMode) return "NO";
+
     final data = await storage.read(key: "session");
     if (data != null) {
       final decodedData = jsonDecode(data);
@@ -116,16 +123,19 @@ class LocalStorageService extends StateNotifier<LocalStorageServiceState>{
 
 
   Future<bool> checkForContainingSettings() async {
+    if (kDebugMode) return false;
     final result = await storage.containsKey(key: "settings");
     return result;
   }
 
   Future<bool> checkForContainingSession() async {
+    if (kDebugMode) return false;
     final result = await storage.containsKey(key: "session");
     return result;
   }
 
   Future<void> removeSession() async {
+    if (kDebugMode) return;
     await storage.delete(key: "session");
   }
 

@@ -9,6 +9,7 @@ import 'package:sochat_client/modules/keys/key_service.dart';
 import 'package:sochat_client/modules/users/user.dart';
 import 'package:sochat_client/modules/websocket/message_packet.dart';
 import 'package:sochat_client/so_ui/notifications/so_notification.dart';
+import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/status.dart' as status;
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -23,7 +24,7 @@ final webSocketProvider = Provider<WebSocketService>((ref) {
 
 
 class WebSocketService{
-  WebSocketChannel? channel;
+  IOWebSocketChannel? channel;
 
   final RequestIdGenerator _requestIdGenerator = RequestIdGenerator();
 
@@ -79,12 +80,15 @@ class WebSocketService{
 
     String webSocketIp = "ws${_keyService.servers.entries.toList()[_ref.read(selectedServerProvider)].value.substring(4)}/ws";
 
-    channel = WebSocketChannel.connect(
-        Uri.parse(webSocketIp)
+    channel = IOWebSocketChannel.connect(
+        Uri.parse(webSocketIp), pingInterval: Duration(seconds: 10)
     );
 
     await channel!.ready;
-    _startPing();
+
+    // Maybe delete pinging later, i will use low-level pings
+    //_startPing();
+
     channel!.stream.listen((message) {
       MessagePacket messagg = MessagePacket.fromJson(jsonDecode(message));
 

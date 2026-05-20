@@ -88,6 +88,7 @@ void main() async {
     ValueListenableBuilder(
       valueListenable: containerHolder,
       builder: (context, container, _) {
+        container.read(notificationsProvider);
         return UncontrolledProviderScope(
           container: container,
           child: const SoChat(),
@@ -160,8 +161,6 @@ class SoChat extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(notificationsServiceProvider);
-
     final colors = ref.watch(settingsControllerProvider.notifier).getTheme(ref.watch(selectedThemeProvider))
         .whereType<AppColors>()
         .first;
@@ -336,13 +335,18 @@ class _SoDesignPageState extends ConsumerState<SoDesignPage> with TrayListener {
     ref.read(keyServiceProvider.notifier);
 
     keyService = ref.read(keyServiceProvider.notifier);
+
+
     localStorageService = ref.read(localStorageServiceProvider.notifier);
     loadSettings();
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => LoginScreen()),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+      );
+    });
+
   }
 
   void loadSettings() async {
@@ -352,7 +356,7 @@ class _SoDesignPageState extends ConsumerState<SoDesignPage> with TrayListener {
     else {
       Future.microtask(() {
         keyService.generateProfile();
-        keyService.addServer("localhost", "http://localhost:8080");
+        keyService.addServer("localhost", "http://localhost:8081");
       });
     }
   }

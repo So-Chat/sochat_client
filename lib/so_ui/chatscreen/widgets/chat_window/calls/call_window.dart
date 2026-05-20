@@ -1,16 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
+import 'package:sochat_client/modules/calls/call_service.dart';
+import 'package:sochat_client/modules/chats/chat_type.dart';
+import 'package:sochat_client/modules/common/auth_service.dart';
+import 'package:sochat_client/modules/users/user_service.dart';
 import 'package:sochat_client/so_ui/chatscreen/widgets/chat_window/calls/user_in_call.dart';
+import 'package:sochat_client/so_ui/chatscreen/widgets/chat_window/chat_window.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
 
 import '../../../../../so_ux/chat_controller.dart';
 
-class CallWindow extends ConsumerWidget {
+class CallWindow extends ConsumerStatefulWidget {
   const CallWindow({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ConsumerStatefulWidget> createState() => CallWindowState();
+}
+
+class CallWindowState extends ConsumerState<CallWindow> {
+
+  late final CallService callService;
+
+  @override
+  void initState(){
+    super.initState();
+    final selectedChat = ref.read(selectedChatProvider);
+    final currentUser = ref.read(currentUserProvider);
+
+    callService = ref.read(callServiceProvider.notifier);
+
+    if (selectedChat!.type == ChatType.PRIVATE) {
+      callService.startCall(selectedChat.participants.firstWhere((p) => p.user.id != currentUser!.id).user.id);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
 
     final selectedChat = ref.watch(selectedChatProvider);
 

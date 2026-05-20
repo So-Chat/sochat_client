@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:sochat_client/context/menus.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
+import 'package:sochat_client/modules/calls/call_service.dart';
 import 'package:sochat_client/modules/chats/chat.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/friends/friends_service.dart';
@@ -52,6 +53,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     final selectedChat = ref.watch(selectedChatProvider);
     final currentUser = ref.watch(currentUserProvider);
+
+    final callSerivce = ref.watch(callServiceProvider.notifier);
+
     width = MediaQuery.sizeOf(context).width;
 
 

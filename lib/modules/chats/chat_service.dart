@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:cryptography/cryptography.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:sochat_client/modules/chats/chat.dart';
@@ -371,11 +372,11 @@ class ChatService extends StateNotifier<ChatsState> {
       int lastMessageId,
       ) {
     final updatedChats = state.chatList.map((chat) {
-      if (chat.id != chatId) { print("check!"); return chat;};
+      if (chat.id != chatId) { return chat;};
 
       final updatedParticipants = chat.participants.map((p) {
         if (p.user.id == userId) {
-          print("Edited participant: ${p.user.username}, ${p.lastReadMessageId}");
+          debugPrint("Edited participant: ${p.user.username}, ${p.lastReadMessageId}");
           return p.copyWith(lastReadMessageId: lastMessageId);
         }
         return p;

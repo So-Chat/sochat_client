@@ -4,11 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 final notificationsServiceProvider = Provider<NotificationsService>((ref) {
   final asyncPlugin = ref.watch(notificationsProvider);
 
-  return asyncPlugin.when(
-    data: (plugin) => NotificationsService(plugin),
-    loading: () => throw Exception('Notifications not initialized yet'),
-    error: (e, _) => throw e,
-  );
+  return asyncPlugin.whenData((plugin) => NotificationsService(plugin)).requireValue;
 });
 
 final notificationsProvider = FutureProvider<FlutterLocalNotificationsPlugin>((ref) async {
