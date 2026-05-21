@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:sochat_client/so_ui/chatscreen/widgets/settings_window/account/account.dart';
 import 'package:sochat_client/so_ui/chatscreen/widgets/settings_window/appearance/appearance.dart';
+import 'package:sochat_client/so_ui/chatscreen/widgets/settings_window/multimedia/multimedia.dart';
 import 'package:sochat_client/so_ui/common/base_panel.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
 import 'package:sochat_client/so_ui/themes/dark/dark_theme.dart';
@@ -63,6 +64,8 @@ class SettingsWindowState extends ConsumerState<SettingsWindow>{
         );
       case 3:
         return Appearance();
+      case 4:
+        return MultimediaSettings();
       default:
         return Container();
     }

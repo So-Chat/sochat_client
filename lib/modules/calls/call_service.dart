@@ -51,9 +51,6 @@ class CallService extends StateNotifier<CallState> {
 
   Future<RTCPeerConnection> createPeer() async {
 
-    final devices = await _captureService.getTrueDeviceList();
-    print(devices);
-
     final configuration = {
       'iceServers': [
         {'urls': 'stun:stun.l.google.com:19302'},

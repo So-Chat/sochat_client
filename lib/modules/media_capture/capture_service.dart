@@ -1,9 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
-import 'package:flutter_soloud/flutter_soloud.dart';
 
 final mediaCaptureServiceProvider = Provider<CaptureService>((ref) {
   final service = CaptureService();
+
+  navigator.mediaDevices.ondevicechange = ((event) async {
+    if (event.runtimeType == MediaDeviceInfo) {
+      service.devices = await service.getDeviceList();
+    }
+  });
+
   ref.onDispose(() => service.dispose());
   return service;
 });
@@ -13,9 +19,10 @@ class CaptureService {
   MediaStream? _localStream;
   MediaStream? get localStream => _localStream;
 
+  List<MediaDeviceInfo> devices = [];
+
   bool userAudio = true;
   bool userVideo = false;
-
 
   void setMediaInputs({bool audio = false, bool video = false}){
     userAudio = audio;
@@ -57,29 +64,14 @@ class CaptureService {
     _localStream = null;
   }
 
-  Future<List<MediaDeviceInfo>> getTrueDeviceList() async {
-    final stream = await navigator.mediaDevices.getUserMedia({
-      'audio': true,
-      'video': true, // ВАЖНО даже если не используешь
-    });
-
-    for (var g in await navigator.mediaDevices.getSources()) {
-      print(g);
-    }
-
-    print('STREAM OK: ${stream.id}');
-
-    print(stream.getAudioTracks().length);
-    print(stream.getVideoTracks().length);
-
-    await Future.delayed(Duration(seconds: 1));
+  Future<List<MediaDeviceInfo>> getDeviceList() async {
 
     final devices = await navigator.mediaDevices.enumerateDevices();
 
-    print('DEVICES LENGTH: ${devices.length}');
     for (final d in devices) {
       print('${d.kind} | ${d.label} | ${d.deviceId}');
     }
+
     return devices;
   }
 

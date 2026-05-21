@@ -47,7 +47,6 @@ dependencies:
   file_picker: ^11.0.2
   mime: ^2.0.0
   flutter_webrtc: ^1.4.1
-  flutter_soloud: ^3.5.4
 
 dev_dependencies:
   flutter_launcher_icons: ^0.14.4

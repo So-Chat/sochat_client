@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:sochat_client/modules/common/local_storage_service.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
+import 'package:sochat_client/modules/media_capture/capture_service.dart';
 import 'package:sochat_client/so_ui/loginscreen/keysettings.dart';
 import 'package:sochat_client/so_ui/loginscreen/login_widget.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/so_ux/login_controller.dart';
+
+import '../../modules/media_capture/capture_service.dart';
 
 final settingsToggle = StateProvider<bool>((ref) => false);
 
@@ -46,8 +49,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ref.watch(selectedServerProvider);
     ref.watch(keyServiceProvider);
     ref.watch(keyServiceProvider.notifier);
-
-
 
     return Scaffold(
       body: Padding(padding: EdgeInsets.all(16), child: Center(

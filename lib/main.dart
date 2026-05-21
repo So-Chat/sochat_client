@@ -413,7 +413,7 @@ class _SoDesignPageState extends ConsumerState<SoDesignPage> with TrayListener {
             }, child: Text("Notification test")),
 
             TextButton(onPressed: () async {
-              final devices = await captureService.getTrueDeviceList();
+              final devices = await captureService.getDeviceList();
               for (var device in devices) {
                 print('${device.kind}: ${device.label} (ID: ${device.deviceId})');
               }

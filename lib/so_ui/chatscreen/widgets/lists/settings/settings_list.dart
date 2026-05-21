@@ -37,6 +37,7 @@ class SettingsList extends ConsumerWidget {
               SettingsItem(title: "Account", trailing: Icon(Icons.person, size: 30,), onPressed: () { ref.read(selectedSettingsOptionProvider.notifier).state = 1; }),
               SettingsItem(title: "Notifications", trailing: Icon(Icons.notifications, size: 30), onPressed: () { ref.read(selectedSettingsOptionProvider.notifier).state = 2; }),
               SettingsItem(title: "Appearance", trailing: Icon(Icons.palette, size: 30), onPressed: () { ref.read(selectedSettingsOptionProvider.notifier).state = 3; }),
+              SettingsItem(title: "Multimedia", trailing: Icon(Icons.phone, size: 30), onPressed: () { ref.read(selectedSettingsOptionProvider.notifier).state = 4; }),
             ],
           ),
           SettingsItem(title: "Log-out", trailing: Icon(Icons.logout, size: 30), onPressed: () { loginController.logout(context); }),
