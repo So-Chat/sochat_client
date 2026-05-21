@@ -12,6 +12,7 @@ import 'package:sochat_client/extenstions/no_transitions.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:sochat_client/modules/common/local_storage_service.dart';
 import 'package:sochat_client/modules/media/media_service.dart';
+import 'package:sochat_client/modules/media_capture/capture_service.dart';
 import 'package:sochat_client/so_ui/notifications/so_notification.dart';
 import 'package:sochat_client/so_ui/chatscreen/chat_screen.dart';
 import 'package:sochat_client/so_ui/notifications/notifications_overlay.dart';
@@ -39,6 +40,7 @@ void main() async {
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     await windowManager.ensureInitialized();
     windowManager.setPreventClose(true);
+
     windowManager.waitUntilReadyToShow().then((_) async {
       windowManager.show();
     });
@@ -340,12 +342,14 @@ class _SoDesignPageState extends ConsumerState<SoDesignPage> with TrayListener {
     localStorageService = ref.read(localStorageServiceProvider.notifier);
     loadSettings();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => LoginScreen()),
-      );
-    });
+    if (!kDebugMode) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => LoginScreen()),
+        );
+      });
+    }
 
   }
 
@@ -386,6 +390,7 @@ class _SoDesignPageState extends ConsumerState<SoDesignPage> with TrayListener {
   Widget build(BuildContext context) {
 
     final mediaService = ref.watch(mediaServiceProvider);
+    final captureService = ref.watch(mediaCaptureServiceProvider);
 
     return Scaffold(
       extendBody: true,
@@ -407,9 +412,12 @@ class _SoDesignPageState extends ConsumerState<SoDesignPage> with TrayListener {
               notificationsManager.addUpdate(SoNotification(title: "youi", content: "nananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananana", icon: Icons.error_outline));
             }, child: Text("Notification test")),
 
-            TextButton(onPressed: () {
-              //mediaService.uploadMedia("http://localhost:8081", 1);
-            }, child: Text("Test Media Upload")),
+            TextButton(onPressed: () async {
+              final devices = await captureService.getTrueDeviceList();
+              for (var device in devices) {
+                print('${device.kind}: ${device.label} (ID: ${device.deviceId})');
+              }
+            }, child: Text("Test Media List output")),
 
           ],
         ),

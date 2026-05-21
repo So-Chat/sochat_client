@@ -9,6 +9,7 @@ import 'package:sochat_client/modules/calls/call_service.dart';
 import 'package:sochat_client/modules/chats/chat.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/friends/friends_service.dart';
+import 'package:sochat_client/modules/media_capture/capture_service.dart';
 import 'package:sochat_client/modules/users/user.dart';
 import 'package:sochat_client/modules/websocket/web_socket_service.dart';
 import 'package:sochat_client/so_ui/common/sub_buttons/avatar_button.dart';

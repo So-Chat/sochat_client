@@ -10,12 +10,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:sochat_client/modules/media_capture/capture_service.dart';
 import 'package:sochat_client/modules/websocket/message_packet.dart';
 import 'package:sochat_client/modules/websocket/web_socket_service.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 final callServiceProvider = StateNotifierProvider<CallService, CallState>((ref) {
-  return CallService(ref.read(webSocketProvider));
+  return CallService(ref.read(webSocketProvider), ref.read(mediaCaptureServiceProvider));
 });
 
 class CallState {}
@@ -23,12 +24,13 @@ class CallState {}
 class CallService extends StateNotifier<CallState> {
 
   WebSocketService _webSocket;
+  CaptureService _captureService;
 
   StreamSubscription? _subscription;
 
   RTCPeerConnection? peerConnection;
 
-  CallService(this._webSocket)
+  CallService(this._webSocket, this._captureService)
       : super(CallState()) {
     startListen();
   }
@@ -48,6 +50,10 @@ class CallService extends StateNotifier<CallState> {
   }
 
   Future<RTCPeerConnection> createPeer() async {
+
+    final devices = await _captureService.getTrueDeviceList();
+    print(devices);
+
     final configuration = {
       'iceServers': [
         {'urls': 'stun:stun.l.google.com:19302'},
@@ -56,10 +62,11 @@ class CallService extends StateNotifier<CallState> {
 
     final pc = await createPeerConnection(configuration);
 
-    pc.onTrack = (RTCTrackEvent event) {
+    pc.onTrack = (RTCTrackEvent event) async {
       if (event.streams.isNotEmpty) {
         final stream = event.streams.first;
         // TODO: Configure video and audio here duh
+
       }
     };
 

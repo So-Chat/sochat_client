@@ -47,8 +47,10 @@ dependencies:
   file_picker: ^11.0.2
   mime: ^2.0.0
   flutter_webrtc: ^1.4.1
+  flutter_soloud: ^3.5.4
 
 dev_dependencies:
+  flutter_launcher_icons: ^0.14.4
   flutter_test:
     sdk: flutter
 
@@ -100,3 +102,19 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+flutter_launcher_icons:
+
+  image_path: "assets/icon/1024-Icon.png"
+  # Optional: support for web, windows, macos
+  web:
+    generate: true
+    image_path: "assets/icon/1024-Icon.png"
+    background_color: "#hexcode"
+    theme_color: "#hexcode"
+  windows:
+    generate: true
+    image_path: "assets/icon/1024-Icon.png"
+    icon_size: 256
+  macos:
+    generate: true
+    image_path: "assets/icon/1024-Icon.png"

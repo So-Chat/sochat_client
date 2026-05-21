@@ -14,6 +14,7 @@ import 'package:sochat_client/modules/friends/friends_service.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
 import 'package:sochat_client/modules/media/media.dart';
 import 'package:sochat_client/modules/media/media_service.dart';
+import 'package:sochat_client/modules/media_capture/capture_service.dart';
 import 'package:sochat_client/modules/messages/message.dart';
 import 'package:sochat_client/modules/messages/message_service.dart';
 import 'package:sochat_client/so_ui/notifications/so_notification.dart';
