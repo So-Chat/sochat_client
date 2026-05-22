@@ -12,8 +12,9 @@ class ContextMenuButton extends ConsumerWidget {
 
   final Widget? leading;
   final String? description;
+  final double? width;
 
-  ContextMenuButton({required this.text, required this.onTap, this.leading, this.description, this.color});
+  ContextMenuButton({required this.text, required this.onTap, this.leading, this.description, this.color, this.width});
 
   Color? color;
 
@@ -31,7 +32,7 @@ class ContextMenuButton extends ConsumerWidget {
           },
           borderRadius: BorderRadius.circular(10),
           child: Container(
-            width: 230,
+            width: width ?? 230,
             alignment: Alignment.centerLeft,
             decoration: BoxDecoration(
                 color: Colors.transparent

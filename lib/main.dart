@@ -389,8 +389,8 @@ class _SoDesignPageState extends ConsumerState<SoDesignPage> with TrayListener {
   @override
   Widget build(BuildContext context) {
 
-    final mediaService = ref.watch(mediaServiceProvider);
-    final captureService = ref.watch(mediaCaptureServiceProvider);
+    ref.watch(mediaServiceProvider);
+    ref.watch(mediaCaptureServiceProvider);
 
     return Scaffold(
       extendBody: true,
@@ -412,12 +412,15 @@ class _SoDesignPageState extends ConsumerState<SoDesignPage> with TrayListener {
               notificationsManager.addUpdate(SoNotification(title: "youi", content: "nananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananana", icon: Icons.error_outline));
             }, child: Text("Notification test")),
 
+            /*
             TextButton(onPressed: () async {
-              final devices = await captureService.getDeviceList();
-              for (var device in devices) {
-                print('${device.kind}: ${device.label} (ID: ${device.deviceId})');
-              }
-            }, child: Text("Test Media List output")),
+              captureService.whenData((service) async {
+                final devices = await service.getDeviceList();
+                for (var device in devices) {
+                  print('${device.kind}: ${device.label} (ID: ${device.deviceId})');
+                }
+              });
+            }, child: Text("Test Media List output")),*/
 
           ],
         ),

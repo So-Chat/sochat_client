@@ -14,6 +14,7 @@ void showContextMenu(
     Offset position,
     WidgetRef ref, {
       required List<ContextMenuButton> items,
+      int? width, int? height
     }) {
   final contextService = ref.read(contextManagerProvider);
 
@@ -24,8 +25,11 @@ void showContextMenu(
 
   const double edgePadding = 10;
 
-  int menuWidth = 230;
+  int menuWidth = width ?? 230;
   int menuHeight = items.length * 44;
+
+  final bool isScrollable = height != null && height < menuHeight;
+  if (isScrollable) menuHeight = height;
 
   if (dx + menuWidth > screenSize.width - edgePadding) {
     dx = position.dx - menuWidth;
@@ -85,7 +89,14 @@ void showContextMenu(
                           border: Border.all(color: context.colors.outline),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Column(
+                        child: isScrollable ? SizedBox(
+                          height: double.parse(height.toString()),
+
+                          child: SingleChildScrollView(scrollDirection: Axis.vertical,child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: items,
+                          )),
+                        ) : Column(
                           mainAxisSize: MainAxisSize.min,
                           children: items,
                         ),

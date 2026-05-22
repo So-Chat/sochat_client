@@ -20,19 +20,20 @@ class CallWindow extends ConsumerStatefulWidget {
 
 class CallWindowState extends ConsumerState<CallWindow> {
 
-  late final CallService callService;
-
   @override
   void initState(){
     super.initState();
     final selectedChat = ref.read(selectedChatProvider);
     final currentUser = ref.read(currentUserProvider);
 
-    callService = ref.read(callServiceProvider.notifier);
+    final callService = ref.read(callServiceProvider.future);
 
-    if (selectedChat!.type == ChatType.PRIVATE) {
-      callService.startCall(selectedChat.participants.firstWhere((p) => p.user.id != currentUser!.id).user.id);
-    }
+    callService.then((service) {
+      if (selectedChat!.type == ChatType.PRIVATE) {
+        print("starting call");
+        service.startCall(selectedChat.participants.firstWhere((p) => p.user.id != currentUser!.id).user.id);
+      }
+    });
   }
 
   @override

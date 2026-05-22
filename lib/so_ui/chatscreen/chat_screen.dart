@@ -55,10 +55,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final selectedChat = ref.watch(selectedChatProvider);
     final currentUser = ref.watch(currentUserProvider);
 
-    final callSerivce = ref.watch(callServiceProvider.notifier);
-
     width = MediaQuery.sizeOf(context).width;
-
 
     if (Platform.isAndroid || Platform.isIOS || Platform.isFuchsia) {
       return Scaffold(

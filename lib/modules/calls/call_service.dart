@@ -15,13 +15,13 @@ import 'package:sochat_client/modules/websocket/message_packet.dart';
 import 'package:sochat_client/modules/websocket/web_socket_service.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-final callServiceProvider = StateNotifierProvider<CallService, CallState>((ref) {
-  return CallService(ref.read(webSocketProvider), ref.read(mediaCaptureServiceProvider));
+final callServiceProvider = FutureProvider<CallService>((ref) async {
+  final capture = await ref.watch(mediaCaptureServiceProvider.future);
+
+  return CallService(ref.read(webSocketProvider), capture);
 });
 
-class CallState {}
-
-class CallService extends StateNotifier<CallState> {
+class CallService {
 
   WebSocketService _webSocket;
   CaptureService _captureService;
@@ -30,8 +30,7 @@ class CallService extends StateNotifier<CallState> {
 
   RTCPeerConnection? peerConnection;
 
-  CallService(this._webSocket, this._captureService)
-      : super(CallState()) {
+  CallService(this._webSocket, this._captureService) {
     startListen();
   }
 
@@ -56,6 +55,12 @@ class CallService extends StateNotifier<CallState> {
         {'urls': 'stun:stun.l.google.com:19302'},
       ]
     };
+
+    // TODO: Delete that mistake after figuring out with CaptureService
+    Future.microtask(() async {
+      final device = await _captureService  .getDeviceList();
+      print(device);
+    });
 
     final pc = await createPeerConnection(configuration);
 
