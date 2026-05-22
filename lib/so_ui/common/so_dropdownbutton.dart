@@ -6,7 +6,7 @@ import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
 
 class SoDropdownButton extends ConsumerStatefulWidget {
-  const SoDropdownButton({super.key, required this.buttonKey, required this.items, this.height, this.width, this.borderColor, this.color, this.dropdownHeight, this.dropdownWidth, this.onChanged});
+  const SoDropdownButton({super.key, required this.items, this.height, this.width, this.borderColor, this.color, this.dropdownHeight, this.dropdownWidth, this.onChanged, this.emptyText, this.initialValue});
 
   final double? height;
   final double? width;
@@ -14,11 +14,13 @@ class SoDropdownButton extends ConsumerStatefulWidget {
   final Color? color;
   final int? dropdownHeight;
   final int? dropdownWidth;
+  
+  final String? emptyText;
 
   final ValueChanged<dynamic>? onChanged;
   final Map<String, dynamic> items;
 
-  final GlobalKey buttonKey;
+  final MapEntry<String, dynamic>? initialValue;
 
   @override
   ConsumerState<SoDropdownButton> createState() => _SoDropdownButtonState();
@@ -28,10 +30,11 @@ class _SoDropdownButtonState extends ConsumerState<SoDropdownButton> {
 
   MapEntry<String, dynamic>? selectedValue;
 
-
+  final GlobalKey buttonKey = GlobalKey();
 
   @override
   void initState() {
+    if (widget.initialValue != null) selectedValue = widget.initialValue;
     super.initState();
   }
   @override
@@ -40,15 +43,17 @@ class _SoDropdownButtonState extends ConsumerState<SoDropdownButton> {
       width: widget.width , height: widget.height,
       borderColor: widget.borderColor, color: widget.color,
 
-      key: widget.buttonKey, child: selectedValue != null ? Text(selectedValue!.key) : Container(),
+      key: buttonKey, child: selectedValue != null ? Text(selectedValue!.key,
+        style: Theme.of(context).textTheme.bodyMedium,) :
+          widget.emptyText != null ? Text(widget.emptyText!, style: Theme.of(context).textTheme.labelMedium) : Container(),
       onPressed: () {
-        final RenderBox box = widget.buttonKey.currentContext!.findRenderObject() as RenderBox;
+        final RenderBox box = buttonKey.currentContext!.findRenderObject() as RenderBox;
         Offset globalPosition = box.localToGlobal(Offset.zero);
         final Size size = box.size;
 
         final Offset menuPosition = Offset(
           globalPosition.dx + (widget.width! - size.width) / 2,
-          globalPosition.dy + size.height,
+          globalPosition.dy,
         );
 
         showContextMenu(context, menuPosition,
@@ -57,5 +62,6 @@ class _SoDropdownButtonState extends ConsumerState<SoDropdownButton> {
             ref,
             height: widget.dropdownHeight, width: widget.dropdownWidth);
       });
+    // привет как дела?
   }
 }

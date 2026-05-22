@@ -8,7 +8,7 @@ final mediaCaptureServiceProvider = FutureProvider<CaptureService>((ref) async {
   await service.initialize();
 
   navigator.mediaDevices.ondevicechange = ((event) async {
-    service.devices = await service.getDeviceList();
+    await service.initialize();
   });
 
   ref.onDispose(() => service.dispose());
@@ -20,30 +20,79 @@ class CaptureService {
   MediaStream? _localStream;
   MediaStream? get localStream => _localStream;
 
-  List<MediaDeviceInfo> devices = [];
+  List<MediaDeviceInfo> audioInputDevices = [];
+  List<MediaDeviceInfo> audioOutputDevices = [];
+  List<MediaDeviceInfo> videoInputDevices = [];
+
+  MediaDeviceInfo? selectedAudioInput;
+  MediaDeviceInfo? selectedAudioOutput;
+  MediaDeviceInfo? selectedVideoInput;
 
   bool userAudio = true;
   bool userVideo = false;
 
-  Future<void> initialize() async {
-
+  Future<void> initialize({int? audioId, int? videoId, bool audio = true, bool video = true}) async {
+    if (_localStream != null) {
+      _localStream!.dispose();
+      _localStream = null;
+    }
     _localStream = await navigator.mediaDevices.getUserMedia({
-      'audio': true,
-      'video': true,
+      'audio': audioId != null
+          ? {
+        'deviceId': {'exact': audioId.toString()}
+      }
+          : audio,
+      'video': videoId != null
+          ? {
+        'deviceId': {'exact': videoId.toString()}
+      }
+          : video,
     });
+
+    print(_localStream?.getVideoTracks().length);
+
+    final videoTrack = _localStream?.getVideoTracks();
+    final audioTrack = _localStream?.getAudioTracks();
 
     print("STREAM CREATED");
 
     await Future.delayed(Duration(seconds: 2));
 
-    devices = await navigator.mediaDevices.enumerateDevices();
+    final allDevices = await navigator.mediaDevices.enumerateDevices();
 
-    print("DEVICES: ${devices.length}");
+    print("DEVICES: ${allDevices.length}");
 
-    for (final d in devices) {
-      print("${d.kind} ${d.label}");
+    await configureDevices(allDevices, videoTrack, audioTrack);
+  }
+
+  Future<void> configureDevices(List<MediaDeviceInfo> allDevices, List<MediaStreamTrack>? videoTrack, List<MediaStreamTrack>? audioTrack) async {
+    selectedAudioOutput = allDevices.where((d) => d.kind == "audiooutput",).firstOrNull;
+
+    for (final d in allDevices) {
+      if (d.kind == "audioinput") {
+        audioInputDevices.add(d);
+        if (audioTrack != null && audioTrack.isNotEmpty) {
+          final audioSettings = audioTrack.first.getSettings();
+          if (d.deviceId == audioSettings["deviceId"]) {
+            selectedAudioInput = d;
+          }
+        }
+      } else if (d.kind == "audiooutput") {
+        audioOutputDevices.add(d);
+      } else if (d.kind == "videoinput") {
+        videoInputDevices.add(d);
+        if (videoTrack != null && videoTrack.isNotEmpty) {
+          final videoSettings = videoTrack.first.getSettings();
+          if (d.deviceId == videoSettings["deviceId"]) {
+            selectedVideoInput = d;
+          }
+        }
+      }
+      print("${d.kind} ${d.label} ${d.kind} ${d.groupId}");
     }
   }
+
+
 
   void setMediaInputs({bool audio = false, bool video = false}){
     userAudio = audio;
@@ -72,7 +121,7 @@ class CaptureService {
   }
 
   Future<void> playRemoteAudio(MediaStream stream) async {
-    final audioRenderer = RTCVideoRenderer(); // он умеет и аудио
+    final audioRenderer = RTCVideoRenderer();
     await audioRenderer.initialize();
     audioRenderer.srcObject = stream;
   }

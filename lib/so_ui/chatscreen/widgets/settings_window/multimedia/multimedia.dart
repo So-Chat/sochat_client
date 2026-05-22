@@ -18,7 +18,9 @@ class MultimediaSettings extends ConsumerStatefulWidget {
 
 class _MultimediaSettingsState extends ConsumerState<MultimediaSettings> {
 
-  late List<MediaDeviceInfo> devices = [];
+  late List<MediaDeviceInfo> audioInputDevices = [];
+  late List<MediaDeviceInfo> audioOutputDevices = [];
+  late List<MediaDeviceInfo> videoInputDevices = [];
   @override
   void initState() {
     super.initState();
@@ -29,39 +31,61 @@ class _MultimediaSettingsState extends ConsumerState<MultimediaSettings> {
     final service =
     await ref.read(mediaCaptureServiceProvider.future);
 
-    final list = await service.getDeviceList();
-
     if (!mounted) return;
 
+    final allDevices = await service.getDeviceList();
     setState(() {
-      devices = list;
-    });
+      for (final d in allDevices) {
+        if (d.kind == "audioinput") {
+          audioInputDevices.add(d);
+        } else if (d.kind == "audiooutput") {
+          audioOutputDevices.add(d);
+        } else if (d.kind == "videoinput") {
+          videoInputDevices.add(d);
+          print(d.label);
+        }
+        print("${d.kind} ${d.label}");
+      }
+  });
   }
-
-  final GlobalKey _buttonKey = GlobalKey();
-
-
 
   @override
   Widget build(BuildContext context) {
-
-    ref.read(mediaCaptureServiceProvider).whenData((service) async {
-      devices = await service.getDeviceList();
-      print(devices);
-    });
+    final service = ref.watch(mediaCaptureServiceProvider);
 
 
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Column(
-        crossAxisAlignment: .start,
-        children: [
-          SoDropdownButton(buttonKey: _buttonKey, items: { for (var d in devices) d.label : d.deviceId },
-            width: 400, height: 50, dropdownHeight: 400, dropdownWidth: 400,
-      ),
-        ],
-      ),
-    );
+    return service.when(data: (captureService) {
+      return Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          spacing: 8,
+          crossAxisAlignment: .center,
+          children: [
+            Row(
+              spacing: 10,
+              mainAxisAlignment: .center,
+              children: [
+                SoDropdownButton(items: { for (var d in audioOutputDevices) d.label : d.deviceId },
+                  width: 350, height: 50, dropdownHeight: 400, dropdownWidth: 350, borderColor: context.colors.outline, emptyText: "No Audio Output",
+                    initialValue: captureService.selectedAudioOutput != null ?
+                    MapEntry(captureService.selectedAudioOutput!.label, captureService.selectedAudioOutput!.deviceId) : null
+                ),
+                SoDropdownButton(items: { for (var d in audioInputDevices) d.label : d.deviceId },
+                  width: 350, height: 50, dropdownHeight: 400, dropdownWidth: 350, borderColor: context.colors.outline, emptyText: "No Audio Input",
+                    initialValue: captureService.selectedAudioInput != null ?
+                    MapEntry(captureService.selectedAudioInput!.label, captureService.selectedAudioInput!.deviceId) : null
+                ),
+              ],
+            ),
 
+            SoDropdownButton(items: { for (var d in videoInputDevices) d.label : d.deviceId },
+              width: 710, height: 50, dropdownHeight: 400, dropdownWidth: 710, borderColor: context.colors.outline, emptyText: "No Video Input",
+              initialValue: captureService.selectedVideoInput != null ?
+              MapEntry(captureService.selectedVideoInput!.label, captureService.selectedVideoInput!.deviceId) : null
+            ),
+          ],
+        ),
+      );
+    }, error: (_, _) { return CircularProgressIndicator(); }, loading:() { return CircularProgressIndicator(); });
   }
 }
