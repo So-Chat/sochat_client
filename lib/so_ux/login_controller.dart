@@ -1,26 +1,15 @@
-import 'dart:convert';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import 'package:sochat_client/context/context_manager.dart';
-import 'package:sochat_client/context/notifications/inapp_notifications_manager.dart';
 import 'package:sochat_client/main.dart';
-import 'package:sochat_client/modules/chats/chat_service.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/common/local_storage_service.dart';
-import 'package:sochat_client/modules/friends/friends_service.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
-import 'package:sochat_client/modules/messages/message_service.dart';
-import 'package:sochat_client/modules/users/user.dart';
-import 'package:sochat_client/modules/users/user_service.dart';
 import 'package:sochat_client/modules/websocket/message_packet.dart';
 import 'package:sochat_client/modules/websocket/web_socket_service.dart';
 import 'package:sochat_client/so_ui/chatscreen/chat_screen.dart';
 import 'package:sochat_client/so_ui/common/so_exception.dart';
-import 'package:sochat_client/so_ui/loginscreen/login_screen.dart';
-import 'package:sochat_client/so_ux/chat_controller.dart';
 
 final loginControllerProvider = StateNotifierProvider<LoginController, LoginControllerState>((ref) {
   final authService = ref.read(authServiceProvider);
@@ -37,7 +26,7 @@ class LoginControllerState {
 class LoginController extends StateNotifier<LoginControllerState> {
   final AuthService _authService;
   final KeyService _keyService;
-  Ref _ref;
+  final Ref _ref;
 
   LoginController(this._authService, this._keyService, this._ref) : super(LoginControllerState());
 

@@ -8,7 +8,6 @@ import 'package:sochat_client/modules/common/local_storage_service.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
 import 'package:sochat_client/so_ui/loginscreen/widgets/keys/keys_list.dart';
 import 'package:sochat_client/so_ui/loginscreen/widgets/keys/server_list.dart';
-import 'package:sochat_client/so_ui/loginscreen/widgets/settings_button.dart';
 
 import 'login_screen.dart';
 

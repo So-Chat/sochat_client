@@ -25,9 +25,9 @@ class LoginButton extends ConsumerWidget {
       child: InkWell(
           onTap: onTap,
 
-          hoverColor: Colors.black.withOpacity(0.05),
+          hoverColor: Colors.black.withValues(alpha: 0.05),
           splashFactory: NoSplash.splashFactory,
-          highlightColor: Colors.black.withOpacity(0.10),
+          highlightColor: Colors.black.withValues(alpha: 0.10),
 
           child: Container(
             alignment: Alignment.centerLeft,

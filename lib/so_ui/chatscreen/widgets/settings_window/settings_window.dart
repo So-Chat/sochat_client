@@ -5,9 +5,6 @@ import 'package:sochat_client/so_ui/chatscreen/widgets/settings_window/account/a
 import 'package:sochat_client/so_ui/chatscreen/widgets/settings_window/appearance/appearance.dart';
 import 'package:sochat_client/so_ui/chatscreen/widgets/settings_window/multimedia/multimedia.dart';
 import 'package:sochat_client/so_ui/common/base_panel.dart';
-import 'package:sochat_client/so_ui/common/so_button.dart';
-import 'package:sochat_client/so_ui/themes/dark/dark_theme.dart';
-import 'package:sochat_client/so_ui/themes/light/light_theme.dart';
 import 'package:sochat_client/so_ux/settings_controller.dart';
 
 class SettingsWindow extends ConsumerStatefulWidget {

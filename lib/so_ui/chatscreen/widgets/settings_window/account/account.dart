@@ -39,8 +39,8 @@ class AccountState extends ConsumerState<Account> {
     final currentUser = ref.read(currentUserProvider);
     setState(() {
       isChanged = (currentUser!.nickname != nicknameController.text) ||
-          (currentUser!.username != usernameController.text) ||
-          (currentUser!.description != descriptionController.text);
+          (currentUser.username != usernameController.text) ||
+          (currentUser.description != descriptionController.text);
     });
   }
 

@@ -3,7 +3,6 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import 'package:sochat_client/context/notifications/inapp_notifications_manager.dart';
 import 'package:sochat_client/modules/chats/chat.dart';
 import 'package:sochat_client/modules/chats/chat_service.dart';
 import 'package:sochat_client/modules/chats/sender_key.dart';
@@ -14,7 +13,6 @@ import 'package:sochat_client/modules/users/user_service.dart';
 import 'package:sochat_client/modules/websocket/message_packet.dart';
 import 'package:sochat_client/modules/users/user.dart';
 import 'package:sochat_client/modules/websocket/web_socket_service.dart';
-import 'package:sochat_client/so_ui/notifications/so_notification.dart';
 import 'package:sochat_client/so_ux/chat_controller.dart';
 
 import '../common/auth_service.dart';

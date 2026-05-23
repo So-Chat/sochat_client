@@ -1,9 +1,7 @@
 
-import 'package:sochat_client/modules/chats/chat_role.dart';
 import 'package:sochat_client/modules/chats/participant.dart';
 import 'package:sochat_client/modules/chats/sender_key.dart';
 import 'package:sochat_client/modules/messages/message.dart';
-import 'package:sochat_client/modules/users/user.dart';
 
 import 'chat_type.dart';
 
@@ -25,16 +23,16 @@ class Chat {
   });
 
   SenderKey? findChatKeyByVersion(int version) {
-    for (var sk in chatKeys!) {
+    for (var sk in chatKeys) {
       if (sk.keyVersion == version) return sk;
     }
     return null;
   }
   SenderKey? findLatestChatKey() {
-    if (chatKeys!.isEmpty) return null;
+    if (chatKeys.isEmpty) return null;
 
-    SenderKey latest = chatKeys!.first;
-    for (var sk in chatKeys!) {
+    SenderKey latest = chatKeys.first;
+    for (var sk in chatKeys) {
       if (sk.keyVersion > latest.keyVersion) {
         latest = sk;
       }

@@ -2,24 +2,13 @@ import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/context/menus.dart';
-import 'package:sochat_client/context/notifications/inapp_notifications_manager.dart';
-import 'package:sochat_client/extenstions/hex_color.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:sochat_client/extenstions/utils.dart';
-import 'package:sochat_client/modules/chats/chat_role.dart';
-import 'package:sochat_client/modules/chats/chat_service.dart';
-import 'package:sochat_client/modules/chats/participant.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
-import 'package:sochat_client/modules/messages/message_service.dart';
-import 'package:sochat_client/modules/users/user.dart';
-import 'package:sochat_client/modules/users/user_service.dart';
 import 'package:sochat_client/so_ui/common/base_panel.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
-import 'package:sochat_client/so_ui/loginscreen/widgets/keys/keys_button.dart';
-import 'package:sochat_client/so_ui/notifications/so_notification.dart';
 import 'package:sochat_client/so_ux/chat_controller.dart';
 import 'chat_item.dart';
-import 'package:collection/collection.dart';
 
 class ChatList extends ConsumerWidget {
 
@@ -103,7 +92,7 @@ class ChatList extends ConsumerWidget {
                     },
                     unReadMessageCount: unReadMessageCount,
                   );
-                }).toList(),
+                }),
               ],
             ),
           ),

@@ -3,13 +3,11 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:sochat_client/modules/common/local_storage_service.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
-import 'package:sochat_client/modules/media_capture/capture_service.dart';
 import 'package:sochat_client/so_ui/loginscreen/keysettings.dart';
 import 'package:sochat_client/so_ui/loginscreen/login_widget.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/so_ux/login_controller.dart';
 
-import '../../modules/media_capture/capture_service.dart';
 
 final settingsToggle = StateProvider<bool>((ref) => false);
 
@@ -23,7 +21,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
 
-  TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
 
   @override
   void initState() {

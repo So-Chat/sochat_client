@@ -1,4 +1,3 @@
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -86,7 +85,7 @@ class _SelectableButtonState extends ConsumerState<SelectableButton> {
                   widget.secondaryText,
                   style: TextStyle(
                     color: widget.isSelected
-                        ? Colors.white.withOpacity(0.5)
+                        ? Colors.white.withValues(alpha: 0.5)
                         : context.colors.textSecondary,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -119,7 +118,7 @@ class _SelectableButtonState extends ConsumerState<SelectableButton> {
                   child: Icon(
                     Icons.more_vert,
                     color: widget.isSelected
-                        ? Colors.white.withOpacity(0.5)
+                        ? Colors.white.withValues(alpha: 0.5)
                         : context.colors.textSecondary,
                   ),
                 )

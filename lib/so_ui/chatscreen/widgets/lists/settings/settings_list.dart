@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
-import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/so_ui/chatscreen/widgets/lists/settings/settings_item.dart';
 import 'package:sochat_client/so_ui/common/base_panel.dart';
-import 'package:sochat_client/so_ui/themes/light/light_theme.dart';
-import 'package:sochat_client/so_ux/chat_controller.dart';
 import 'package:sochat_client/so_ux/login_controller.dart';
 import 'package:sochat_client/so_ux/settings_controller.dart';
 

@@ -1,23 +1,16 @@
-import 'dart:convert';
-import 'dart:io';
-import 'dart:math';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import 'package:sochat_client/context/notifications/inapp_notifications_manager.dart';
 import 'package:sochat_client/modules/chats/chat.dart';
 import 'package:sochat_client/modules/chats/chat_service.dart';
-import 'package:sochat_client/modules/chats/participant.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/friends/friends_service.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
 import 'package:sochat_client/modules/media/media.dart';
 import 'package:sochat_client/modules/media/media_service.dart';
-import 'package:sochat_client/modules/media_capture/capture_service.dart';
 import 'package:sochat_client/modules/messages/message.dart';
 import 'package:sochat_client/modules/messages/message_service.dart';
-import 'package:sochat_client/so_ui/notifications/so_notification.dart';
 
 final chatControllerProvider = StateNotifierProvider<ChatController, ChatControllerState>((ref) {
   final chatService = ref.read(chatsServiceProvider.notifier);
@@ -46,12 +39,12 @@ class ChatControllerState {
 }
 
 class ChatController extends StateNotifier<ChatControllerState> {
-  ChatService _chatService;
-  MessageService _messageService;
-  FriendsService _friendsService;
-  AuthService _authService;
-  MediaService _mediaService;
-  KeyService _keyService;
+  final ChatService _chatService;
+  final MessageService _messageService;
+  final FriendsService _friendsService;
+  final AuthService _authService;
+  final MediaService _mediaService;
+  final KeyService _keyService;
   Ref ref;
 
   ChatController(this._chatService, this._authService, this._messageService, this._friendsService, this._mediaService, this._keyService, this.ref) : super(ChatControllerState());

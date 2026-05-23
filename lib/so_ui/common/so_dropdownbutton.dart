@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/context/context_menu.dart';
 import 'package:sochat_client/context/context_menu_button.dart';
-import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
 
 class SoDropdownButton extends ConsumerStatefulWidget {
@@ -43,7 +42,7 @@ class _SoDropdownButtonState extends ConsumerState<SoDropdownButton> {
       width: widget.width , height: widget.height,
       borderColor: widget.borderColor, color: widget.color,
 
-      key: buttonKey, child: selectedValue != null ? Text(selectedValue!.key,
+      key: buttonKey, child: selectedValue != null ? Text(selectedValue!.value,
         style: Theme.of(context).textTheme.bodyMedium,) :
           widget.emptyText != null ? Text(widget.emptyText!, style: Theme.of(context).textTheme.labelMedium) : Container(),
       onPressed: () {
@@ -57,8 +56,10 @@ class _SoDropdownButtonState extends ConsumerState<SoDropdownButton> {
         );
 
         showContextMenu(context, menuPosition,
-            items: widget.items.entries.map((k) => ContextMenuButton(width: widget.dropdownWidth!.toDouble(), text: k.key,
-                onTap: () { selectedValue = k; widget.onChanged; setState(() {}); }), ).toList(),
+            items: widget.items.entries.map((k) => ContextMenuButton(width: widget.dropdownWidth!.toDouble(), text: k.value,
+                onTap: () { selectedValue = k;
+                if (widget.onChanged != null) { widget.onChanged!.call(k); };
+                setState(() {}); }), ).toList(),
             ref,
             height: widget.dropdownHeight, width: widget.dropdownWidth);
       });

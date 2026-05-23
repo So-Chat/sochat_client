@@ -10,7 +10,6 @@ import 'package:sochat_client/modules/users/user.dart';
 import 'package:sochat_client/modules/websocket/message_packet.dart';
 import 'package:sochat_client/so_ui/notifications/so_notification.dart';
 import 'package:web_socket_channel/io.dart';
-import 'package:web_socket_channel/status.dart' as status;
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 final webSocketProvider = Provider<WebSocketService>((ref) {
@@ -45,8 +44,8 @@ class WebSocketService{
 
   final _pendingRequests = <String, Completer>{};
   Timer? _pingTimer;
-  Ref _ref;
-  KeyService _keyService;
+  final Ref _ref;
+  final KeyService _keyService;
 
   WebSocketService(this._ref, this._keyService);
 
@@ -144,6 +143,7 @@ class WebSocketService{
         case "call_offer":
         case "call_answer":
         case "call_accept":{
+            print("hey");
             _callController.add(messagg);
             break;
         }
@@ -155,11 +155,11 @@ class WebSocketService{
 
 
 
-  void addToSink(WebSocketChannel? channel, Map<String, dynamic> message) {
+  void addToSink(Map<String, dynamic> message) {
     if (channel == null) {
       return;
     }
-    channel.sink.add(jsonEncode(message));
+    channel!.sink.add(jsonEncode(message));
   }
 
   Future<dynamic> sendRequest(MessagePacket messagePacket, {int duration = 5}) {
@@ -171,7 +171,7 @@ class WebSocketService{
 
     messagePacket.payload["requestId"] = requestId;
 
-    addToSink(channel!, messagePacket.toJson());
+    addToSink(messagePacket.toJson());
     return completer.future.timeout(
       Duration(minutes: duration),
       onTimeout: () {

@@ -432,7 +432,7 @@ class Menus {
                           return Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: SoButton(
-                              color: isSelected ? Colors.black.withOpacity(0.05) : Colors.transparent,
+                              color: isSelected ? Colors.black.withValues(alpha: 0.05) : Colors.transparent,
                               width: 300,
                               height: 60,
                               onPressed: () {
@@ -582,7 +582,7 @@ class Menus {
                             return Padding(
                               padding: const EdgeInsets.all(8.0),
                               child: SoButton(
-                                color: isSelected ? Colors.black.withOpacity(0.05) : Colors.transparent,
+                                color: isSelected ? Colors.black.withValues(alpha: 0.05) : Colors.transparent,
                                 width: 300,
                                 height: 60,
                                 onPressed: () {

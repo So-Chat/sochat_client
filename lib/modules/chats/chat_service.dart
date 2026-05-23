@@ -37,7 +37,7 @@ class ChatsState {
     List<Chat>? chats,
   }) {
     return ChatsState(
-      chatList: chats ?? this.chatList,
+      chatList: chats ?? chatList,
     );
   }
 
@@ -50,7 +50,7 @@ class ChatService extends StateNotifier<ChatsState> {
   final UserService _userService;
   final User? currentUser;
 
-  Ref _ref;
+  final Ref _ref;
 
   ChatService(this._webSocket, this._keyService, this._authService, this._userService, this.currentUser, this._ref)
       : super(ChatsState(chatList: [])) {
@@ -372,7 +372,7 @@ class ChatService extends StateNotifier<ChatsState> {
       int lastMessageId,
       ) {
     final updatedChats = state.chatList.map((chat) {
-      if (chat.id != chatId) { return chat;};
+      if (chat.id != chatId) { return chat;}
 
       final updatedParticipants = chat.participants.map((p) {
         if (p.user.id == userId) {

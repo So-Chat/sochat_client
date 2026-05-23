@@ -9,7 +9,7 @@ import 'package:sochat_client/so_ui/loginscreen/widgets/keys/selectable_button.d
 
 class ServerList extends ConsumerWidget  {
 
-  ServerList({super.key});
+  const ServerList({super.key});
 
 
   @override
@@ -86,7 +86,7 @@ class ServerList extends ConsumerWidget  {
                       },
                     );
                   },
-                  separatorBuilder: (_, __) => const SizedBox(height: 4),
+                  separatorBuilder: (_, _) => const SizedBox(height: 4),
                 );
               }),
             ),

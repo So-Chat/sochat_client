@@ -1,15 +1,12 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:sochat_client/context/notifications/inapp_notifications_manager.dart';
 import 'package:sochat_client/extenstions/desktop_window_listener.dart';
 import 'package:sochat_client/extenstions/no_transitions.dart';
-import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:sochat_client/modules/common/local_storage_service.dart';
 import 'package:sochat_client/modules/media/media_service.dart';
 import 'package:sochat_client/modules/media_capture/capture_service.dart';
@@ -18,16 +15,13 @@ import 'package:sochat_client/so_ui/chatscreen/chat_screen.dart';
 import 'package:sochat_client/so_ui/notifications/notifications_overlay.dart';
 import 'package:sochat_client/so_ui/loginscreen/login_screen.dart';
 import 'package:sochat_client/so_ui/themes/colors.dart';
-import 'package:sochat_client/so_ui/themes/dark/dark_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sochat_client/so_ui/themes/light/light_theme.dart';
 import 'package:sochat_client/so_ux/settings_controller.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
 
 import 'modules/keys/key_service.dart';
 import 'modules/notifications/notifications_service.dart';
-import 'modules/websocket/web_socket_service.dart';
 
 final containerHolder = ValueNotifier<ProviderContainer>(ProviderContainer());
 
@@ -195,9 +189,9 @@ class SoChat extends ConsumerWidget {
                 primaryColorDark: colors.primary,
                 primaryColorLight: colors.primary,
 
-                hoverColor: colors.contrastColor.withOpacity(0.05),
+                hoverColor: colors.contrastColor.withValues(alpha: 0.05),
                 splashFactory: NoSplash.splashFactory,
-                highlightColor: colors.contrastColor.withOpacity(0.10),
+                highlightColor: colors.contrastColor.withValues(alpha: 0.10),
 
                 colorScheme: ColorScheme.light(
                   primary: colors.primary,

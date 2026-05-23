@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import 'package:sochat_client/context/context_manager.dart';
 import 'package:sochat_client/so_ui/notifications/so_notification.dart';
-import 'package:sochat_client/extenstions/theme_getter.dart';
-import 'package:sochat_client/so_ui/common/so_button.dart';
 
 final inAppNotificationsManagerProvider = StateNotifierProvider<InAppNotificationsManager, InAppNotificationsManagerState>(
       (ref) => InAppNotificationsManager(ref),);
@@ -19,7 +16,7 @@ class InAppNotificationsManagerState {
     List<SoNotification>? notifications,
   }) {
     return InAppNotificationsManagerState(
-      notificationList: notifications ?? this.notificationList,
+      notificationList: notifications ?? notificationList,
     );
   }
 }
@@ -30,7 +27,7 @@ class InAppNotificationsManager extends StateNotifier<InAppNotificationsManagerS
   InAppNotificationsManager(this._ref)
       : super(InAppNotificationsManagerState(notificationList: []));
 
-  Ref _ref;
+  final Ref _ref;
 
   List<SoNotification> get notificationList =>
       state.notificationList;

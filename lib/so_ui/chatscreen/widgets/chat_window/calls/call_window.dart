@@ -4,9 +4,7 @@ import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:sochat_client/modules/calls/call_service.dart';
 import 'package:sochat_client/modules/chats/chat_type.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
-import 'package:sochat_client/modules/users/user_service.dart';
 import 'package:sochat_client/so_ui/chatscreen/widgets/chat_window/calls/user_in_call.dart';
-import 'package:sochat_client/so_ui/chatscreen/widgets/chat_window/chat_window.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
 
 import '../../../../../so_ux/chat_controller.dart';

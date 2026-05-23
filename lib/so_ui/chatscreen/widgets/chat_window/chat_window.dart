@@ -10,7 +10,7 @@ import 'package:sochat_client/so_ui/common/base_panel.dart';
 import 'package:sochat_client/so_ux/chat_controller.dart';
 
 class ChatWindow extends ConsumerStatefulWidget {
-  ChatWindow({super.key,
+  const ChatWindow({super.key,
     this.backgroundColor,
     this.topBorderRadius = 10,
     this.borderRadius = 10,

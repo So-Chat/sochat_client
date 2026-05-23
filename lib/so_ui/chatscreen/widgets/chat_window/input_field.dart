@@ -1,11 +1,8 @@
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
-import 'package:sochat_client/modules/media/media.dart';
 import 'package:sochat_client/modules/media/media_service.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
 import 'package:sochat_client/so_ux/chat_controller.dart';
@@ -112,7 +109,7 @@ class InputField extends ConsumerWidget {
                 padding: EdgeInsets.symmetric(horizontal: 8),
                 child: Row(
                   children: [
-                    Container(
+                    SizedBox(
                       width: 40,
                       height: 40,
                       child: Material(
@@ -126,7 +123,7 @@ class InputField extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    Container(
+                    SizedBox(
                       width: 40,
                       height: 40,
                       child: Material(

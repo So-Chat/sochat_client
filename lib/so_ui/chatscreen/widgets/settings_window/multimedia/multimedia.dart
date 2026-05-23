@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
-import 'package:sochat_client/context/context_menu.dart';
-import 'package:sochat_client/context/context_menu_button.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:sochat_client/modules/media_capture/capture_service.dart';
-import 'package:sochat_client/so_ui/common/so_button.dart';
 import 'package:sochat_client/so_ui/common/so_dropdownbutton.dart';
-import 'package:sochat_client/so_ux/settings_controller.dart';
 
 class MultimediaSettings extends ConsumerStatefulWidget {
   const MultimediaSettings({super.key});
@@ -65,23 +61,27 @@ class _MultimediaSettingsState extends ConsumerState<MultimediaSettings> {
               spacing: 10,
               mainAxisAlignment: .center,
               children: [
-                SoDropdownButton(items: { for (var d in audioOutputDevices) d.label : d.deviceId },
+                // TODO: Made it more flexible
+                SoDropdownButton(items: { for (var d in audioOutputDevices) d.deviceId : d.label },
                   width: 350, height: 50, dropdownHeight: 400, dropdownWidth: 350, borderColor: context.colors.outline, emptyText: "No Audio Output",
+                    onChanged: (value) { captureService.selectedAudioOutput = captureService.audioOutputDevices.firstWhere((d) => d.deviceId == value.key ); },
                     initialValue: captureService.selectedAudioOutput != null ?
-                    MapEntry(captureService.selectedAudioOutput!.label, captureService.selectedAudioOutput!.deviceId) : null
+                    MapEntry(captureService.selectedAudioOutput!.deviceId, captureService.selectedAudioOutput!.label) : null
                 ),
-                SoDropdownButton(items: { for (var d in audioInputDevices) d.label : d.deviceId },
+                SoDropdownButton(items: { for (var d in audioInputDevices) d.deviceId : d.label },
                   width: 350, height: 50, dropdownHeight: 400, dropdownWidth: 350, borderColor: context.colors.outline, emptyText: "No Audio Input",
+                    onChanged: (value) { captureService.selectedAudioInput = captureService.audioInputDevices.firstWhere((d) => d.deviceId == value.key); },
                     initialValue: captureService.selectedAudioInput != null ?
-                    MapEntry(captureService.selectedAudioInput!.label, captureService.selectedAudioInput!.deviceId) : null
+                    MapEntry(captureService.selectedAudioInput!.deviceId, captureService.selectedAudioInput!.label) : null
                 ),
               ],
             ),
 
-            SoDropdownButton(items: { for (var d in videoInputDevices) d.label : d.deviceId },
+            SoDropdownButton(items: { for (var d in videoInputDevices) d.deviceId : d.label },
               width: 710, height: 50, dropdownHeight: 400, dropdownWidth: 710, borderColor: context.colors.outline, emptyText: "No Video Input",
-              initialValue: captureService.selectedVideoInput != null ?
-              MapEntry(captureService.selectedVideoInput!.label, captureService.selectedVideoInput!.deviceId) : null
+              onChanged: (value) { captureService.selectedVideoInput = captureService.videoInputDevices.firstWhere((d) => d.deviceId == value.key); },
+                initialValue: captureService.selectedVideoInput != null ?
+              MapEntry(captureService.selectedVideoInput!.deviceId, captureService.selectedVideoInput!.label) : null
             ),
           ],
         ),

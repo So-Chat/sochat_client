@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -21,7 +20,7 @@ class LoginWidget extends ConsumerStatefulWidget {
 
   final TextEditingController usernameController;
 
-  LoginWidget({super.key, required this.usernameController});
+  const LoginWidget({super.key, required this.usernameController});
 
   @override
   LoginPageWidget createState() => LoginPageWidget();

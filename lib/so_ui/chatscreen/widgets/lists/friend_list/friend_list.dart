@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
-import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/friends/friends_service.dart';
 import 'package:sochat_client/so_ui/chatscreen/widgets/lists/friend_list/friend_item.dart';
 import 'package:sochat_client/so_ui/chatscreen/widgets/lists/friend_list/outgoing_friend_item.dart';

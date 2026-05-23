@@ -23,7 +23,7 @@ class AuthService {
       KeyP keyPair,
       String ip, WidgetRef ref) async {
 
-      var url = Uri.parse((ip + '/auth/login?username=${username}').toString());
+      var url = Uri.parse(('$ip/auth/login?username=$username').toString());
       var response = await http.get(
         url,
         headers: <String, String>{
@@ -71,7 +71,7 @@ class AuthService {
       String username,
       KeyP keyPair,
       String ip) async {
-    var url = Uri.parse((ip + '/auth/register').toString());
+    var url = Uri.parse(('$ip/auth/register').toString());
 
 
     MessagePacket packet = MessagePacketBuilder()

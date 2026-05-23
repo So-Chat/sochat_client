@@ -43,11 +43,11 @@ void showContextMenu(
 
   final overlay = Overlay.of(context);
 
-  items.forEach((i) {
+  for (var i in items) {
     i.removeAction = () => contextService.hideMenu();
-  });
+  }
 
-  final FocusNode _menuFocusNode = FocusNode();
+  final FocusNode menuFocusNode = FocusNode();
 
   final overlayEntry = OverlayEntry(
     builder: (ctx) {
@@ -79,7 +79,7 @@ void showContextMenu(
                     ),
                   },
                   child: Focus(
-                    focusNode: _menuFocusNode,
+                    focusNode: menuFocusNode,
                     autofocus: true,
                     child: Material(
                       borderRadius: BorderRadius.circular(10),
@@ -116,7 +116,7 @@ void showContextMenu(
     if (!context.mounted) return;
     contextService.showMenu(overlay, overlayEntry);
     Future.microtask(() {
-      _menuFocusNode.requestFocus();
+      menuFocusNode.requestFocus();
     });
   });
 }

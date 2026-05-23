@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/context/menus.dart';
-import 'package:sochat_client/context/context_manager.dart';
 import 'package:sochat_client/context/context_menu.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:sochat_client/context/context_menu_button.dart';
 import 'package:sochat_client/modules/chats/chat.dart';
 import 'package:sochat_client/modules/chats/chat_type.dart';
-import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/messages/message.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
 import 'package:sochat_client/so_ux/chat_controller.dart';
@@ -102,14 +100,13 @@ class ChatItem extends ConsumerWidget {
                                     style: Theme.of(context).textTheme.labelSmall,
                                   ),
                                 ),
-                                if (time != null)
-                                  Flexible(child: Text(
-                                    time!,
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 1,
-                                    style: Theme.of(context).textTheme.labelSmall,
-                                  ),
-                                  )
+                                Flexible(child: Text(
+                                  time,
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                  style: Theme.of(context).textTheme.labelSmall,
+                                ),
+                                )
                               ],
                             ),
                           ),

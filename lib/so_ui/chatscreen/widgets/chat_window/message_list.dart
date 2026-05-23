@@ -1,14 +1,10 @@
-import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/misc.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:sochat_client/context/context_menu.dart';
 import 'package:sochat_client/context/menus.dart';
-import 'package:sochat_client/extenstions/hex_color.dart';
-import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:sochat_client/extenstions/utils.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
@@ -19,7 +15,7 @@ import 'package:sochat_client/so_ux/chat_controller.dart';
 
 
 class MessageList extends ConsumerStatefulWidget {
-  MessageList(this.textFieldFocusNode, {super.key});
+  const MessageList(this.textFieldFocusNode, {super.key});
   final FocusNode textFieldFocusNode;
   @override
   ConsumerState<ConsumerStatefulWidget> createState() => MessageListState();
@@ -49,7 +45,7 @@ class MessageListState extends ConsumerState<MessageList>{
           chatController.loadRecentMessages();
       }
 
-      final messages = ref.read(chatMessagesProvider)[selectedChat!.id]!;
+      final messages = ref.read(chatMessagesProvider)[selectedChat.id]!;
 
       final positions = _itemPositionsListener.itemPositions.value;
 
@@ -156,7 +152,7 @@ class MessageListState extends ConsumerState<MessageList>{
                                       style: Theme.of(context).textTheme.labelSmall,
                                     ),
                                     if (message.sender.id == currentUser!.id)
-                                    Text(selectedChat.participants.any((p) => p.lastReadMessageId >= message.id && p.user.id != currentUser!.id) ? "Read" : "Unread", style: Theme.of(context).textTheme.labelSmall,),
+                                    Text(selectedChat.participants.any((p) => p.lastReadMessageId >= message.id && p.user.id != currentUser.id) ? "Read" : "Unread", style: Theme.of(context).textTheme.labelSmall,),
                                   ],
                                 ),
                                 if (!["", " "].any((c) => c == message.content)) Text(

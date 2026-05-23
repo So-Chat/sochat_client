@@ -8,10 +8,7 @@ import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:sochat_client/modules/calls/call_service.dart';
 import 'package:sochat_client/modules/chats/chat.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
-import 'package:sochat_client/modules/friends/friends_service.dart';
-import 'package:sochat_client/modules/media_capture/capture_service.dart';
 import 'package:sochat_client/modules/users/user.dart';
-import 'package:sochat_client/modules/websocket/web_socket_service.dart';
 import 'package:sochat_client/so_ui/common/sub_buttons/avatar_button.dart';
 import 'package:sochat_client/so_ui/chatscreen/widgets/lists/chat_list/chat_list.dart';
 import 'package:sochat_client/so_ui/chatscreen/widgets/chat_window/chat_window.dart';
@@ -54,6 +51,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     final selectedChat = ref.watch(selectedChatProvider);
     final currentUser = ref.watch(currentUserProvider);
+
+    ref.read(callServiceProvider);
 
     width = MediaQuery.sizeOf(context).width;
 

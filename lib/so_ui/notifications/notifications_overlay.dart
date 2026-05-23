@@ -1,9 +1,6 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/context/notifications/inapp_notifications_manager.dart';
-import 'package:sochat_client/extenstions/theme_getter.dart';
-import 'package:sochat_client/so_ui/common/so_button.dart';
 
 class NotificationsOverlay extends ConsumerStatefulWidget {
   const NotificationsOverlay({super.key});
@@ -40,7 +37,7 @@ class _NotificationsOverlayState extends ConsumerState<NotificationsOverlay> {
                       reverse: true,
                       shrinkWrap: true,
                       itemCount: notifications.notificationList.length,
-                      separatorBuilder: (_, __) =>
+                      separatorBuilder: (_, _) =>
                       const SizedBox(height: 16),
                       itemBuilder: (context, index) {
                         final n =

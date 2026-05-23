@@ -12,7 +12,7 @@ class SoNotification extends ConsumerWidget {
   IconData? icon;
   bool canCopy;
 
-  SoNotification({this.title, this.content, this.icon, this.canCopy = false});
+  SoNotification({super.key, this.title, this.content, this.icon, this.canCopy = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

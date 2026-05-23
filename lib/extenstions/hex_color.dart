@@ -2,7 +2,7 @@ import 'dart:ui';
 
 extension HexColor on String {
   Color toColor() {
-    String hex = this.replaceAll("#", "");
+    String hex = replaceAll("#", "");
     if (hex.length == 6) {
       hex = "FF$hex";
     }

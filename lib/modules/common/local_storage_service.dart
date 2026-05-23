@@ -18,8 +18,8 @@ class LocalStorageServiceState {}
 class LocalStorageService extends StateNotifier<LocalStorageServiceState>{
   LocalStorageService(this._keyService, this._ref) : super(LocalStorageServiceState());
 
-  KeyService _keyService;
-  Ref _ref;
+  final KeyService _keyService;
+  final Ref _ref;
 
   final storage = FlutterSecureStorage(
     aOptions: AndroidOptions(),

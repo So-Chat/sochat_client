@@ -2,26 +2,23 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:mime/mime.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
-import 'package:sochat_client/extenstions/utils.dart';
 
 
 import 'media.dart';
 
 final mediaServiceProvider = Provider<MediaService>((ref) {
-  final _keyService = ref.read(keyServiceProvider.notifier);
-  final _authService = ref.read(authServiceProvider);
-  return MediaService(_keyService, _authService);
+  final keyService = ref.read(keyServiceProvider.notifier);
+  final authService = ref.read(authServiceProvider);
+  return MediaService(keyService, authService);
 });
 
 class MediaService {
@@ -67,8 +64,8 @@ class MediaService {
   }
 
   Future<void> uploadMedia(String ip, Media mediaFile, {String? description, SecretKey? aesKey}) async{
-    var url = Uri.parse((ip + '/media').toString());
-    var request = await http.MultipartRequest("POST", url);
+    var url = Uri.parse(('$ip/media').toString());
+    var request = http.MultipartRequest("POST", url);
 
     // Set chat id and send authorization token
     request.headers['Authorization'] = 'Bearer ${_authService.token!}';

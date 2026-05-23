@@ -5,13 +5,22 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 final mediaCaptureServiceProvider = FutureProvider<CaptureService>((ref) async {
   final service = CaptureService();
 
+  service.bootstrapPc = await createPeerConnection({});
+
   await service.initialize();
 
   navigator.mediaDevices.ondevicechange = ((event) async {
     await service.initialize();
   });
 
-  ref.onDispose(() => service.dispose());
+  ref.onDispose(() {
+    if (service.bootstrapPc != null) {
+      service.bootstrapPc!.close();
+      service.bootstrapPc!.dispose();
+    }
+    service.dispose();
+  });
+
   return service;
 });
 
@@ -31,7 +40,9 @@ class CaptureService {
   bool userAudio = true;
   bool userVideo = false;
 
-  Future<void> initialize({int? audioId, int? videoId, bool audio = true, bool video = true}) async {
+  RTCPeerConnection? bootstrapPc;
+
+  Future<void> initialize({String? audioId, String? videoId, bool audio = true, bool video = true}) async {
     if (_localStream != null) {
       _localStream!.dispose();
       _localStream = null;
@@ -48,6 +59,7 @@ class CaptureService {
       }
           : video,
     });
+
 
     print(_localStream?.getVideoTracks().length);
 
@@ -117,7 +129,7 @@ class CaptureService {
     _localStream = stream;
 
 
-    return stream!;
+    return stream;
   }
 
   Future<void> playRemoteAudio(MediaStream stream) async {

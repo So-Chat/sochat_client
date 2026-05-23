@@ -14,7 +14,7 @@ void showContextWindow(
 
   final overlay = Overlay.of(context);
 
-  final FocusNode _menuFocusNode = FocusNode(
+  final FocusNode menuFocusNode = FocusNode(
     onKeyEvent: (node, event) {
       if (event is KeyDownEvent &&
           event.logicalKey == LogicalKeyboardKey.escape) {
@@ -35,7 +35,7 @@ void showContextWindow(
               behavior: HitTestBehavior.opaque,
               onTap: () => contextService.hideWindow(),
               child: Container(
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withValues(alpha: 0.5),
               ),
             ),
           ),
@@ -44,7 +44,7 @@ void showContextWindow(
               borderRadius: BorderRadius.circular(10),
               child: Focus(
                 autofocus: true,
-                focusNode: _menuFocusNode,
+                focusNode: menuFocusNode,
                 child: Container(
                     width: width,
                     height: height,
@@ -71,6 +71,6 @@ void showContextWindow(
 
   WidgetsBinding.instance.addPostFrameCallback((_) {
     contextService.showWindow(overlay, overlayEntry);
-    _menuFocusNode.requestFocus();
+    menuFocusNode.requestFocus();
   });
 }

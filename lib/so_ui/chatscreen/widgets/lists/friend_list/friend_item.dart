@@ -45,7 +45,7 @@ class FriendItem extends ConsumerWidget {
           showContextMenu(
             context,
             details,
-            items: menuItems!,
+            items: menuItems,
             ref,
           );
         },
@@ -64,7 +64,7 @@ class FriendItem extends ConsumerWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        user.nickname != null ? user.nickname! : user.username,
+                        user.nickname,
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                         style: Theme.of(context).textTheme.titleMedium,
@@ -73,7 +73,7 @@ class FriendItem extends ConsumerWidget {
                   ],
                 ),
               ),
-              if (trailing != null) trailing!,
+              ?trailing,
             ],
           ),
         ),

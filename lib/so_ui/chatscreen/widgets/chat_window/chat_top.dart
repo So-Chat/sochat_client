@@ -3,7 +3,6 @@ import 'package:sochat_client/context/menus.dart';
 import 'package:sochat_client/modules/chats/chat_type.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sochat_client/modules/media/media_service.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
 import 'package:sochat_client/so_ux/chat_controller.dart';
 

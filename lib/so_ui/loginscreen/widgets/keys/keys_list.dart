@@ -3,20 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:sochat_client/context/menus.dart';
-import 'package:sochat_client/context/context_manager.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
-import 'package:sochat_client/so_ui/common/input.dart';
-import 'package:sochat_client/so_ui/chatscreen/widgets/search/search_list.dart';
 import 'package:sochat_client/context/context_menu.dart';
-import 'package:sochat_client/context/context_menu_button.dart';
-import 'package:sochat_client/context/context_window.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
 import 'package:sochat_client/so_ui/loginscreen/widgets/keys/selectable_button.dart';
-import 'package:sochat_client/so_ui/loginscreen/widgets/settings_button.dart';
 
 class KeysList extends ConsumerWidget  {
 
-  KeysList({super.key});
+  const KeysList({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -100,7 +94,7 @@ class KeysList extends ConsumerWidget  {
                       },
                     );
                   },
-                  separatorBuilder: (_, __) => const SizedBox(height: 4),
+                  separatorBuilder: (_, _) => const SizedBox(height: 4),
                 );
               }),
             ),

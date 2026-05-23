@@ -1,4 +1,3 @@
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,7 +13,7 @@ class ContextMenuButton extends ConsumerWidget {
   final String? description;
   final double? width;
 
-  ContextMenuButton({required this.text, required this.onTap, this.leading, this.description, this.color, this.width});
+  ContextMenuButton({super.key, required this.text, required this.onTap, this.leading, this.description, this.color, this.width});
 
   Color? color;
 
