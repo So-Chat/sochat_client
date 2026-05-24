@@ -85,6 +85,7 @@ class CaptureService {
         audioInputDevices.add(d);
         if (audioTrack != null && audioTrack.isNotEmpty) {
           final audioSettings = audioTrack.first.getSettings();
+          print(audioSettings);
           if (d.deviceId == audioSettings["deviceId"]) {
             selectedAudioInput = d;
           }
@@ -95,16 +96,29 @@ class CaptureService {
         videoInputDevices.add(d);
         if (videoTrack != null && videoTrack.isNotEmpty) {
           final videoSettings = videoTrack.first.getSettings();
+          print(videoSettings);
           if (d.deviceId == videoSettings["deviceId"]) {
             selectedVideoInput = d;
           }
         }
       }
-      print("${d.kind} ${d.label} ${d.kind} ${d.groupId}");
+      print("${d.kind} ${d.label} ${d.groupId} ${d.deviceId}");
     }
   }
 
+  MediaDeviceInfo? findCurrentDevice(
+      List<MediaDeviceInfo> devices,
+      MediaStreamTrack track,
+      ) {
+    final settings = track.getSettings();
 
+    return devices.firstWhere(
+          (d) =>
+      d.deviceId == settings["deviceId"] ||
+          d.groupId == settings["groupId"] ||
+          d.label == track.label,
+    );
+  }
 
   void setMediaInputs({bool audio = false, bool video = false}){
     userAudio = audio;

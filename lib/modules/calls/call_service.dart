@@ -19,7 +19,11 @@ import 'package:sochat_client/so_ui/notifications/so_notification.dart';
 final callServiceProvider = FutureProvider<CallService>((ref) async {
   final capture = await ref.watch(mediaCaptureServiceProvider.future);
 
-  return CallService(ref.read(webSocketProvider), capture, ref.read(inAppNotificationsManagerProvider.notifier), ref);
+  ref.onDispose(() async {
+    await capture.dispose();
+  });
+
+  return CallService(ref.read(webSocketProvider), capture, ref.read(inAppNotificationsManagerProvider.notifier));
 });
 
 class CallService {
@@ -27,7 +31,6 @@ class CallService {
   final WebSocketService _webSocket;
   final CaptureService _captureService;
   final InAppNotificationsManager _inAppNotificationsManager;
-  final Ref _ref;
 
   StreamSubscription? _subscription;
 
@@ -36,8 +39,14 @@ class CallService {
 
   final List<RTCIceCandidate> _pendingCandidates = [];
 
-  CallService(this._webSocket, this._captureService, this._inAppNotificationsManager, this._ref) {
+  CallService(this._webSocket, this._captureService, this._inAppNotificationsManager) {
     startListen();
+  }
+
+  void dispose() {
+    _subscription?.cancel();
+    peerConnection?.dispose();
+    localRenderer?.dispose();
   }
 
   // TODO: SET SPEAKER, ITS REALLY IMPORTANT
@@ -57,10 +66,6 @@ class CallService {
           handleIce(message.payload);
           break;
         }
-        case "call_end": {
-          // TODO: Do something other than just print
-          print("CALL END"); break;
-        }
       }
     });
   }
@@ -78,23 +83,28 @@ class CallService {
 
     await renderer.initialize();
 
+    renderer.audioOutput(_captureService.selectedAudioOutput!.deviceId);
+
     if (_captureService.localStream == null) {
       throw Exception("NO LOCAL STREAM");
     }
     for (var track in _captureService.localStream!.getTracks()) {
       await pc.addTrack(track, _captureService.localStream!);
     }
-    pc.onTrack = (RTCTrackEvent event) {
+    pc.onTrack = (RTCTrackEvent event) async {
 
       if (event.streams.isNotEmpty) {
-        final stream = event.streams.first;
-
+        print("event streams is not empry");
         renderer.srcObject = event.streams.first;
         if (_captureService.selectedAudioOutput != null) {
-          renderer.audioOutput(_captureService.selectedAudioOutput!.deviceId);
+          print(_captureService.selectedAudioOutput!.label);
+          print(_captureService.selectedAudioInput!.label);
+
+
         }
 
         if (event.track.kind == 'audio') {
+          print("theres audio");
           event.track.enabled = true;
         }
       }
@@ -208,5 +218,12 @@ class CallService {
     }
 
     await peerConnection!.addCandidate(candidateIce);
+  }
+
+  Future<void> handleCallEnd() async {
+    final request = await _webSocket.sendRequest(MessagePacket(type: "call_end", payload: {}));
+    if (request.payload["success"] == "true") {
+
+    }
   }
 }

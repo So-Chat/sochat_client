@@ -15,6 +15,7 @@ class Chat {
   List<SenderKey> chatKeys = [];
   List<Participant> participants = [];
 
+  bool inCall = false ;
 
   Chat({
     required this.id,

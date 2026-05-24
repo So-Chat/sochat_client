@@ -33,10 +33,12 @@ void main() async {
 
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     await windowManager.ensureInitialized();
+    await windowManager.setTitle("SoChat");
+
     windowManager.setPreventClose(true);
 
     windowManager.waitUntilReadyToShow().then((_) async {
-      windowManager.show();
+      await windowManager.show();
     });
 
     windowManager.addListener(DesktopWindowListener());
