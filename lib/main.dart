@@ -10,6 +10,7 @@ import 'package:sochat_client/extenstions/no_transitions.dart';
 import 'package:sochat_client/modules/common/local_storage_service.dart';
 import 'package:sochat_client/modules/media/media_service.dart';
 import 'package:sochat_client/modules/media_capture/capture_service.dart';
+import 'package:sochat_client/modules/websocket/web_socket_service.dart';
 import 'package:sochat_client/so_ui/notifications/so_notification.dart';
 import 'package:sochat_client/so_ui/chatscreen/chat_screen.dart';
 import 'package:sochat_client/so_ui/notifications/notifications_overlay.dart';
@@ -87,6 +88,7 @@ void main() async {
       valueListenable: containerHolder,
       builder: (context, container, _) {
         container.read(notificationsProvider);
+        container.read(webSocketProvider);
         return UncontrolledProviderScope(
           container: container,
           child: const SoChat(),
@@ -407,17 +409,6 @@ class _SoDesignPageState extends ConsumerState<SoDesignPage> with TrayListener {
             TextButton(onPressed: () {
               notificationsManager.addUpdate(SoNotification(title: "youi", content: "nananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananana", icon: Icons.error_outline));
             }, child: Text("Notification test")),
-
-            /*
-            TextButton(onPressed: () async {
-              captureService.whenData((service) async {
-                final devices = await service.getDeviceList();
-                for (var device in devices) {
-                  print('${device.kind}: ${device.label} (ID: ${device.deviceId})');
-                }
-              });
-            }, child: Text("Test Media List output")),*/
-
           ],
         ),
       ),

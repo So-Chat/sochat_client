@@ -23,8 +23,10 @@ import 'package:sochat_client/so_ux/chat_controller.dart';
 import '../common/auth_service.dart';
 import '../keys/key_service.dart';
 
-final chatsServiceProvider = StateNotifierProvider<ChatService, ChatsState>(
-      (ref) => ChatService(ref.read(webSocketProvider), ref.read(keyServiceProvider.notifier), ref.read(authServiceProvider), ref.read(userServiceProvider.notifier), ref.read(currentUserProvider), ref),);
+final chatsServiceProvider = StateNotifierProvider<ChatService, ChatsState>((ref) {
+  return ChatService(ref.read(webSocketProvider.future), ref.read(keyServiceProvider.notifier), ref.read(authServiceProvider), ref.read(userServiceProvider.notifier),
+  ref.read(currentUserProvider), ref);
+});
 
 
 
@@ -44,7 +46,7 @@ class ChatsState {
 }
 
 class ChatService extends StateNotifier<ChatsState> {
-  final WebSocketService _webSocket;
+  late final WebSocketService _webSocket;
   final KeyService _keyService;
   final AuthService _authService;
   final UserService _userService;
@@ -52,13 +54,19 @@ class ChatService extends StateNotifier<ChatsState> {
 
   final Ref _ref;
 
-  ChatService(this._webSocket, this._keyService, this._authService, this._userService, this.currentUser, this._ref)
-      : super(ChatsState(chatList: [])) {
-    startListen();
-  }
-
   List<Chat> get chatList =>
       state.chatList;
+
+  ChatService(Future<WebSocketService> webSocketFuture, this._keyService, this._authService, this._userService, this.currentUser, this._ref):
+        super(ChatsState(chatList: [])) {
+    webSocketFuture.then((ws) {
+      _webSocket = ws;
+      startListen();
+    }).catchError((error) {
+      throw Exception("WebSocket initialization in ChatService fall in error!\nstacktrace: $error");
+    });
+
+  }
 
   StreamSubscription? _subscription;
 
@@ -93,8 +101,8 @@ class ChatService extends StateNotifier<ChatsState> {
 
   @override
   void dispose() {
-    _subscription?.cancel();
     super.dispose();
+    _subscription?.cancel();
   }
 
   void remove(String chatName) {
@@ -220,6 +228,8 @@ class ChatService extends StateNotifier<ChatsState> {
 
   Future<Chat> receiveChat(Map<String, dynamic> chatMap) async {
     Chat chat = Chat(id: chatMap['id'], title: chatMap["title"], type: ChatType.values.byName(chatMap["chatType"]));
+
+    chat.inCall = chatMap['inCall'];
 
     if (chatMap["participants"] != null) {
       List<dynamic> participantsJson = chatMap["participants"];
@@ -390,7 +400,7 @@ class ChatService extends StateNotifier<ChatsState> {
     state = state.copyWith(chats: List<Chat>.from(updatedChats));
 
     final updated =
-      state.chatList.firstWhere((c) => c.id == chatId);
+    state.chatList.firstWhere((c) => c.id == chatId);
 
     final selectedChat = _ref.read(selectedChatProvider);
 

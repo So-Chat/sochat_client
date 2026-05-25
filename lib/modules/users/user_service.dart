@@ -11,7 +11,7 @@ import '../common/auth_service.dart';
 import '../keys/key_service.dart';
 
 final userServiceProvider = StateNotifierProvider<UserService, UserState>(
-      (ref) => UserService(ref.read(webSocketProvider), ref.read(keyServiceProvider.notifier), ref.read(authServiceProvider), ref.read(currentUserProvider), ref),);
+      (ref) => UserService(ref.read(webSocketProvider.future), ref.read(keyServiceProvider.notifier), ref.read(authServiceProvider), ref.read(currentUserProvider), ref),);
 
 
 class UserState {
@@ -19,7 +19,7 @@ class UserState {
 }
 
 class UserService extends StateNotifier<UserState> {
-  final WebSocketService _webSocket;
+  late final WebSocketService _webSocket;
   final KeyService _keyService;
   final AuthService _authService;
   final User? currentUser;
@@ -29,9 +29,14 @@ class UserService extends StateNotifier<UserState> {
   final Map<int, User> userBuffer = {};
   StreamSubscription? _subscription;
 
-  UserService(this._webSocket, this._keyService, this._authService, this.currentUser, this.ref)
+  UserService(Future<WebSocketService> webSocketFuture, this._keyService, this._authService, this.currentUser, this.ref)
       : super(UserState()) {
-    startListen();
+    webSocketFuture.then((ws) {
+      _webSocket = ws;
+      startListen();
+    }).catchError((error) {
+      throw Exception("WebSocket initialization in ChatService fall in error!\nstacktrace: $error");
+    });
   }
 
   void startListen() {

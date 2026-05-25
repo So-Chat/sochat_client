@@ -11,7 +11,7 @@ import 'package:sochat_client/modules/keys/key_service.dart';
 import 'package:sochat_client/modules/websocket/web_socket_service.dart';
 
 final friendsServiceProvider = StateNotifierProvider<FriendsService, FriendsState>(
-      (ref) => FriendsService(ref.read(webSocketProvider), ref.read(keyServiceProvider.notifier), ref.read(authServiceProvider), ref.read(currentUserProvider), ref),);
+      (ref) => FriendsService(ref.read(webSocketProvider.future), ref.read(keyServiceProvider.notifier), ref.read(authServiceProvider), ref.read(currentUserProvider), ref),);
 
 final friendsListProvider = Provider<List<User>>((ref) {
   final friendships = ref.watch(friendsServiceProvider).friendships;
@@ -81,7 +81,7 @@ class FriendsState {
 
 
 class FriendsService extends StateNotifier<FriendsState>{
-  final WebSocketService _webSocket;
+  late final WebSocketService _webSocket;
   final KeyService _keyService;
   final AuthService _authService;
   final User? currentUser;
@@ -90,9 +90,15 @@ class FriendsService extends StateNotifier<FriendsState>{
   StreamSubscription? _subscription;
 
 
-  FriendsService(this._webSocket, this._keyService, this._authService, this.currentUser, this.ref)
+  FriendsService(Future<WebSocketService> webSocketFuture, this._keyService, this._authService, this.currentUser, this.ref)
       : super(FriendsState(friendships: {})) {
-    startListen();
+    webSocketFuture.then((ws) {
+      _webSocket = ws;
+      startListen();
+    }).catchError((error) {
+      throw Exception("WebSocket initialization in ChatService fall in error!\nstacktrace: $error");
+    });
+
   }
 
   Map<String, Friendship> get friendships =>

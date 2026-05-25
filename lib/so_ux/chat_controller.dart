@@ -12,6 +12,8 @@ import 'package:sochat_client/modules/media/media_service.dart';
 import 'package:sochat_client/modules/messages/message.dart';
 import 'package:sochat_client/modules/messages/message_service.dart';
 
+import '../modules/websocket/web_socket_service.dart';
+
 final chatControllerProvider = StateNotifierProvider<ChatController, ChatControllerState>((ref) {
   final chatService = ref.read(chatsServiceProvider.notifier);
   final authService = ref.read(authServiceProvider);
@@ -50,10 +52,12 @@ class ChatController extends StateNotifier<ChatControllerState> {
   ChatController(this._chatService, this._authService, this._messageService, this._friendsService, this._mediaService, this._keyService, this.ref) : super(ChatControllerState());
 
   Future<void> getFriendsList() async {
+    await ref.read(webSocketProvider.future);
     await _friendsService.getRelativesList();
   }
 
   Future<void> getChatList() async {
+    await ref.read(webSocketProvider.future);
     _chatService.getChatList();
   }
 

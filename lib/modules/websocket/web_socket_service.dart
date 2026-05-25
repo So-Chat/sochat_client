@@ -12,7 +12,7 @@ import 'package:sochat_client/so_ui/notifications/so_notification.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-final webSocketProvider = Provider<WebSocketService>((ref) {
+final webSocketProvider = FutureProvider<WebSocketService>((ref) {
   final service = WebSocketService(ref, ref.read(keyServiceProvider.notifier));
 
   ref.onDispose(() {
@@ -91,7 +91,7 @@ class WebSocketService{
     channel!.stream.listen((message) {
       MessagePacket messagg = MessagePacket.fromJson(jsonDecode(message));
 
-      if (messagg.type != "pong") print("WS RAW MESSAGE: $message");
+      debugPrint("WS RAW MESSAGE: $message");
 
       final requestId = messagg.payload["requestId"];
       if (requestId != null && _pendingRequests.containsKey(requestId)) {
@@ -148,7 +148,7 @@ class WebSocketService{
             break;
         }
         default:
-          print("Необработанный тип: ${messagg.type}");
+          debugPrint("Unhandled type: ${messagg.type}");
       }
     });
   }
@@ -182,6 +182,7 @@ class WebSocketService{
   }
 
 
+  // MAY BE DELETED IN FUTURE
   void _startPing() async {
     if (channel == null) return;
 

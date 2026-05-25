@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:sochat_client/context/notifications/inapp_notifications_manager.dart';
+import 'package:sochat_client/modules/chats/chat_service.dart';
 import 'package:sochat_client/modules/media_capture/capture_service.dart';
 import 'package:sochat_client/modules/notifications/notifications_service.dart';
 import 'package:sochat_client/modules/websocket/message_packet.dart';
@@ -23,13 +24,15 @@ final callServiceProvider = FutureProvider<CallService>((ref) async {
     await capture.dispose();
   });
 
-  return CallService(ref.read(webSocketProvider), capture, ref.read(inAppNotificationsManagerProvider.notifier));
+  return CallService(await ref.read(webSocketProvider.future), capture, ref.read(chatsServiceProvider.notifier), ref.read(inAppNotificationsManagerProvider.notifier));
 });
 
 class CallService {
 
   final WebSocketService _webSocket;
   final CaptureService _captureService;
+  final ChatService _chatService;
+
   final InAppNotificationsManager _inAppNotificationsManager;
 
   StreamSubscription? _subscription;
@@ -39,7 +42,7 @@ class CallService {
 
   final List<RTCIceCandidate> _pendingCandidates = [];
 
-  CallService(this._webSocket, this._captureService, this._inAppNotificationsManager) {
+  CallService(this._webSocket, this._captureService, this._chatService, this._inAppNotificationsManager) {
     startListen();
   }
 
@@ -57,7 +60,8 @@ class CallService {
       switch(message.type){
         case "call_offer": {
           _inAppNotificationsManager.addUpdate(SoNotification(title: "Call incoming"));
-          answerCall(message.payload["userId"]);
+          _chatService.chatList.firstWhere((c) => c.id == message.payload["chat_id"]).inCall = true;
+          //answerCall(message.payload["chatId"]);
           break;
         }
         case "call_answer": { handleAnswer(message.payload["sdp"]); break; }
@@ -91,20 +95,11 @@ class CallService {
     for (var track in _captureService.localStream!.getTracks()) {
       await pc.addTrack(track, _captureService.localStream!);
     }
+
     pc.onTrack = (RTCTrackEvent event) async {
-
       if (event.streams.isNotEmpty) {
-        print("event streams is not empry");
         renderer.srcObject = event.streams.first;
-        if (_captureService.selectedAudioOutput != null) {
-          print(_captureService.selectedAudioOutput!.label);
-          print(_captureService.selectedAudioInput!.label);
-
-
-        }
-
         if (event.track.kind == 'audio') {
-          print("theres audio");
           event.track.enabled = true;
         }
       }
@@ -152,6 +147,10 @@ class CallService {
 
   Future<void> startCall(int userId) async {
     //await _captureService.initialize(audioId: _captureService.selectedAudioInput!.deviceId);
+
+
+    //localRenderer = RTCVideoRenderer();
+    //localRenderer!.srcObject = _captureService.localStream;
 
     peerConnection = await createPeer();
 

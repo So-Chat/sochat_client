@@ -68,7 +68,7 @@ class ChatTop extends ConsumerWidget {
                     {
                       ref.read(isInCallProvider.notifier).state = true;
                     }},
-                  color: context.colors.foreground,
+                  color: selectedChat!.inCall ? context.colors.positive: context.colors.foreground,
                   child: Icon(Icons.call),),
                 SoButton(
                   height: 40,

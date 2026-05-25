@@ -79,7 +79,7 @@ class LoginController extends StateNotifier<LoginControllerState> {
   }
 
   Future<void> _verify(BuildContext context, MessagePacket messagePacket, WidgetRef ref) async {
-    final webSocketService = ref.read(webSocketProvider);
+    final webSocketService = await ref.read(webSocketProvider.future);
     webSocketService.connect();
 
     _authService.token = messagePacket.payload["token"];
@@ -92,7 +92,7 @@ class LoginController extends StateNotifier<LoginControllerState> {
   }
 
   Future<void> authenticateWithActiveSession(BuildContext context, WidgetRef ref) async{
-    final webSocketService = ref.read(webSocketProvider);
+    final webSocketService = await ref.read(webSocketProvider.future);
     webSocketService.connect();
 
     String token = await ref.read(localStorageServiceProvider.notifier).getSessionAndSetSelectedKeys();
@@ -131,8 +131,8 @@ class LoginController extends StateNotifier<LoginControllerState> {
           (route) => false,
     );
 
-    Future.microtask(() {
-      oldContainer.read(webSocketProvider).disconnect();
+    Future.microtask(() async {
+      (await oldContainer.read(webSocketProvider.future)).disconnect();
       oldContainer.dispose();
       containerHolder.value = ProviderContainer();
     });
