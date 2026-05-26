@@ -121,12 +121,9 @@ class CaptureService {
   }
 
   void setMediaInputs({bool audio = false, bool video = false}){
-    userAudio = audio;
-    userVideo = video;
-
     if (_localStream != null) {
-      _localStream?.getAudioTracks().forEach((t) => t.enabled = userAudio);
-      _localStream?.getVideoTracks().forEach((t) => t.enabled = userVideo);
+      _localStream?.getAudioTracks().forEach((t) => t.enabled = audio);
+      _localStream?.getVideoTracks().forEach((t) => t.enabled = video);
     }
   }
 
@@ -141,8 +138,7 @@ class CaptureService {
     final stream = await navigator.mediaDevices.getUserMedia(constraints);
 
     _localStream = stream;
-
-
+    
     return stream;
   }
 

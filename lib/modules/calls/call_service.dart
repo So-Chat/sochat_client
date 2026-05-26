@@ -17,6 +17,8 @@ import 'package:sochat_client/modules/websocket/message_packet.dart';
 import 'package:sochat_client/modules/websocket/web_socket_service.dart';
 import 'package:sochat_client/so_ui/notifications/so_notification.dart';
 
+import '../../so_ux/chat_controller.dart';
+
 final callServiceProvider = FutureProvider<CallService>((ref) async {
   final capture = await ref.watch(mediaCaptureServiceProvider.future);
 
@@ -24,7 +26,7 @@ final callServiceProvider = FutureProvider<CallService>((ref) async {
     await capture.dispose();
   });
 
-  return CallService(await ref.read(webSocketProvider.future), capture, ref.read(chatsServiceProvider.notifier), ref.read(inAppNotificationsManagerProvider.notifier));
+  return CallService(await ref.read(webSocketProvider.future), capture, ref.read(chatsServiceProvider.notifier), ref.read(inAppNotificationsManagerProvider.notifier), ref);
 });
 
 class CallService {
@@ -39,10 +41,13 @@ class CallService {
 
   RTCPeerConnection? peerConnection;
   RTCVideoRenderer? localRenderer;
+  RTCVideoRenderer? remoteRenderer;
+
+  Ref _ref;
 
   final List<RTCIceCandidate> _pendingCandidates = [];
 
-  CallService(this._webSocket, this._captureService, this._chatService, this._inAppNotificationsManager) {
+  CallService(this._webSocket, this._captureService, this._chatService, this._inAppNotificationsManager, this._ref) {
     startListen();
   }
 
@@ -61,13 +66,16 @@ class CallService {
         case "call_offer": {
           _inAppNotificationsManager.addUpdate(SoNotification(title: "Call incoming"));
           _chatService.chatList.firstWhere((c) => c.id == message.payload["chat_id"]).inCall = true;
-          //answerCall(message.payload["chatId"]);
           break;
         }
         case "call_answer": { handleAnswer(message.payload["sdp"]); break; }
         case "call_accept": { handleOffer(message.payload["sdp"]); break; }
         case "call_ice": {
           handleIce(message.payload);
+          break;
+        }
+        case "call_end": {
+          handleCallEnd(message.payload);
           break;
         }
       }
@@ -83,11 +91,16 @@ class CallService {
     };
 
     final pc = await createPeerConnection(configuration);
-    final renderer = RTCVideoRenderer();
 
-    await renderer.initialize();
+    remoteRenderer = RTCVideoRenderer();
+    localRenderer = RTCVideoRenderer();
 
-    renderer.audioOutput(_captureService.selectedAudioOutput!.deviceId);
+    await remoteRenderer?.initialize();
+    await localRenderer?.initialize();
+
+    localRenderer?.srcObject = _captureService.localStream;
+
+    remoteRenderer?.audioOutput(_captureService.selectedAudioOutput!.deviceId);
 
     if (_captureService.localStream == null) {
       throw Exception("NO LOCAL STREAM");
@@ -98,12 +111,13 @@ class CallService {
 
     pc.onTrack = (RTCTrackEvent event) async {
       if (event.streams.isNotEmpty) {
-        renderer.srcObject = event.streams.first;
+        remoteRenderer?.srcObject = event.streams.first;
         if (event.track.kind == 'audio') {
           event.track.enabled = true;
         }
       }
     };
+
 
     pc.onIceConnectionState = (state) {
       print("ICE connection state: $state");
@@ -145,7 +159,7 @@ class CallService {
     return pc;
   }
 
-  Future<void> startCall(int userId) async {
+  Future<void> startCall(int userId, int chatId) async {
     //await _captureService.initialize(audioId: _captureService.selectedAudioInput!.deviceId);
 
 
@@ -157,13 +171,13 @@ class CallService {
     final offer = await peerConnection!.createOffer();
     await peerConnection!.setLocalDescription(offer);
 
-    MessagePacket messagePacket = MessagePacket(type: "call_offer", payload: {"sdp": offer.sdp, "callee_id": userId});
+    MessagePacket messagePacket = MessagePacket(type: "call_offer", payload: {"sdp": offer.sdp, "user_id": userId, "chat_id": chatId});
 
     _webSocket.addToSink(messagePacket.toJson());
   }
 
   Future<void> answerCall(int callId) async {
-    _webSocket.addToSink(MessagePacket(type: "call_accept", payload: {"call_id": callId}).toJson());
+    _webSocket.addToSink(MessagePacket(type: "call_accept", payload: {"chat_id": callId}).toJson());
   }
 
   Future<void> handleOffer(String sdp) async {
@@ -219,10 +233,18 @@ class CallService {
     await peerConnection!.addCandidate(candidateIce);
   }
 
-  Future<void> handleCallEnd() async {
+  Future<void> callEnd() async {
     final request = await _webSocket.sendRequest(MessagePacket(type: "call_end", payload: {}));
-    if (request.payload["success"] == "true") {
+    handleCallEnd(request.payload);
+  }
 
+  Future<void> handleCallEnd(Map<String, dynamic> payload) async {
+    if (payload["success"] == "true") {
+      peerConnection?.dispose();
+      localRenderer?.dispose();
+      localRenderer = null;
+      peerConnection = null;
     }
+    _ref.read(isInCallProvider.notifier).state = false;
   }
 }
