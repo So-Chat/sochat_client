@@ -227,63 +227,73 @@ class ChatService extends StateNotifier<ChatsState> {
 
 
   Future<Chat> receiveChat(Map<String, dynamic> chatMap) async {
-    Chat chat = Chat(id: chatMap['id'], title: chatMap["title"], type: ChatType.values.byName(chatMap["chatType"]));
+    try {
+      Chat chat = Chat(id: chatMap['id'], title: chatMap["title"], type: ChatType.values.byName(chatMap["chatType"]));
 
-    chat.inCall = chatMap['inCall'];
+      chat.inCall = chatMap['inCall'];
 
-    if (chatMap["participants"] != null) {
-      List<dynamic> participantsJson = chatMap["participants"];
-      for (Map<String, dynamic> participantJson in participantsJson){
-        User user = (await _userService.getUser(id: participantJson["userId"]));
+      if (chatMap["participants"] != null) {
+        List<dynamic> participantsJson = chatMap["participants"];
+        for (Map<String, dynamic> participantJson in participantsJson){
+          User user = (await _userService.getUser(id: participantJson["userId"]));
 
-        Participant participant = Participant(user: user,
-            chatRole: ChatRole.values.byName(participantJson["chatRole"]),
-            lastReadMessageId: participantJson["lastMessageId"]);
-        if (chat.participants.any((p) => p.user.id == user.id)) {
-          chat.participants[chat.participants.indexWhere((p) => p.user.id == participant.user.id)] = participant;
-        } else {
-          chat.participants.add(participant);
+          Participant participant = Participant(user: user,
+              chatRole: ChatRole.values.byName(participantJson["chatRole"]),
+              lastReadMessageId: participantJson["lastMessageId"]);
+          if (chat.participants.any((p) => p.user.id == user.id)) {
+            chat.participants[chat.participants.indexWhere((p) => p.user.id == participant.user.id)] = participant;
+          } else {
+            chat.participants.add(participant);
+          }
         }
       }
-    }
 
-    if (chatMap["senderKeys"] != null) {
-      List<dynamic> senderKeysJson = chatMap["senderKeys"];
-      for (Map<String, dynamic> senderKeyJson in senderKeysJson){
+      if (chatMap["senderKeys"] != null) {
+        List<dynamic> senderKeysJson = chatMap["senderKeys"];
+        for (Map<String, dynamic> senderKeyJson in senderKeysJson){
+          SenderKey senderKey = SenderKey(keyVersion: senderKeyJson["keyVersion"], key: (await _keyService.decryptAesWithX25519(storedString: senderKeyJson["chatKey"], keyBytes: _keyService.profiles.entries.toList()[_ref.read(selectedProfileProvider)].value.privateKeyX!)));
+
+          chat.chatKeys.add(senderKey);
+        }
+        print(chat.chatKeys.length);
+        print(chat.chatKeys);
+
+        print(senderKeysJson.length);
+        print(senderKeysJson);
+      }
+
+      if (chatMap["lastSenderKey"] != null || chatMap["lastMessage"].runtimeType == String){
+        final senderKeyJson = chatMap["lastSenderKey"];
+        print(chat.title);
+        print(chatMap);
         SenderKey senderKey = SenderKey(keyVersion: senderKeyJson["keyVersion"], key: (await _keyService.decryptAesWithX25519(storedString: senderKeyJson["chatKey"], keyBytes: _keyService.profiles.entries.toList()[_ref.read(selectedProfileProvider)].value.privateKeyX!)));
-
         chat.chatKeys.add(senderKey);
       }
-      print(chat.chatKeys.length);
-      print(chat.chatKeys);
+      if (chatMap["lastMessage"] != null || chatMap["lastMessage"].runtimeType == String) {
+        final messageJson = chatMap["lastMessage"];
 
-      print(senderKeysJson.length);
-      print(senderKeysJson);
-    }
+        print(chat.title + ":" + chat.findChatKeyByVersion(messageJson['keyVersion']).toString());
+        if (chat.findChatKeyByVersion(chat.chatKeys.last.keyVersion) != null) {
+          messageJson['content'] = await _keyService.decryptWithAes(messageJson['content'], chat.findChatKeyByVersion(chat.chatKeys.last.keyVersion)!.key);
 
-    if (chatMap["lastSenderKey"] != null || chatMap["lastMessage"].runtimeType == String){
-      final senderKeyJson = chatMap["lastSenderKey"];
-      SenderKey senderKey = SenderKey(keyVersion: senderKeyJson["keyVersion"], key: (await _keyService.decryptAesWithX25519(storedString: senderKeyJson["chatKey"], keyBytes: _keyService.profiles.entries.toList()[_ref.read(selectedProfileProvider)].value.privateKeyX!)));
-      chat.chatKeys.add(senderKey);
-    }
-    if (chatMap["lastMessage"] != null || chatMap["lastMessage"].runtimeType == String) {
-      final messageJson = chatMap["lastMessage"];
-
-      messageJson['content'] = await _keyService.decryptWithAes(messageJson['content'], chat.findChatKeyByVersion(messageJson['keyVersion'])!.key);
-
-      late Message message;
-      if (chat.participants.any((p) => p.user.id == messageJson["senderId"]!)){
-        message = Message.fromJson(messageJson, chat.participants.firstWhere((p) => p.user.id == messageJson["senderId"]!).user);
+          late Message message;
+          if (chat.participants.any((p) => p.user.id == messageJson["senderId"]!)){
+            message = Message.fromJson(messageJson, chat.participants.firstWhere((p) => p.user.id == messageJson["senderId"]!).user);
+          }
+          else {
+            User sender = (await _userService.getUser(id: messageJson["senderId"]));
+            message = Message.fromJson(
+                messageJson, sender);
+          }
+          _ref.read(messageServiceProvider.notifier).addMessage(message);
+        }
       }
-      else {
-        User sender = (await _userService.getUser(id: messageJson["senderId"]));
-        message = Message.fromJson(
-            messageJson, sender);
-      }
-      _ref.read(messageServiceProvider.notifier).addMessage(message);
-    }
 
-    return chat;
+      return chat;
+    } on Exception catch (e) {
+      print("Error loading chat, chatmap: $chatMap");
+      throw Exception(e);
+    }
   }
 
   Future<void> addParticipant(int userId, Chat chat) async {

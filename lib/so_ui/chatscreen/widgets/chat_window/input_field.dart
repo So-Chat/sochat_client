@@ -46,6 +46,7 @@ class InputField extends ConsumerWidget {
                 itemBuilder: (context, index) {
                   return SoButton(
                       onPressed: () {
+                        chatContoller.deleteMedia(selectedFiles[index]);
                         final newList = [...selectedFiles];
                         newList.removeAt(index);
                         ref.read(selectedMediaProvider.notifier).state = newList;

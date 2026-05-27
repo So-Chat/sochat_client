@@ -11,6 +11,8 @@ import 'package:sochat_client/modules/websocket/web_socket_service.dart';
 import 'package:sochat_client/so_ui/chatscreen/chat_screen.dart';
 import 'package:sochat_client/so_ui/common/so_exception.dart';
 
+import '../modules/notifications/notifications_service.dart';
+
 final loginControllerProvider = StateNotifierProvider<LoginController, LoginControllerState>((ref) {
   final authService = ref.read(authServiceProvider);
   final keyService = ref.read(keyServiceProvider.notifier);
@@ -123,13 +125,21 @@ class LoginController extends StateNotifier<LoginControllerState> {
 
     await Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (_) => UncontrolledProviderScope(
-          container: ProviderContainer(),
-          child: const SoChat(),
+        builder: (_) => ValueListenableBuilder(
+          valueListenable: containerHolder,
+          builder: (context, container, _) {
+            container.read(notificationsProvider);
+            container.read(webSocketProvider);
+            return UncontrolledProviderScope(
+              container: container,
+              child: const SoChat(),
+            );
+          },
         ),
       ),
           (route) => false,
     );
+
 
     Future.microtask(() async {
       (await oldContainer.read(webSocketProvider.future)).disconnect();

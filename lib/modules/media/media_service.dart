@@ -29,7 +29,7 @@ class MediaService {
   MediaService(this._keyService, this._authService);
 
   Future<List<File>> getFiles() async {
-    FilePickerResult? result = await FilePicker.pickFiles(allowMultiple: true);
+    FilePickerResult? result = await FilePicker.pickFiles(allowMultiple: true, lockParentWindow: true);
 
     if (result != null) {
       List<File> files = result.paths.map((path) => File(path!)).toList();
@@ -62,6 +62,20 @@ class MediaService {
     final bytes = await stream.expand((x) => x).toList();
     return Uint8List.fromList(bytes);
   }
+
+  Future<void> deleteMedia(String ip, Media mediaFile) async {
+    var url = Uri.parse(('$ip/media?id=${mediaFile.mediaId}').toString());
+    var request = await http.delete(
+      url,
+      headers: {
+        'Authorization': 'Bearer ${_authService.token!}'
+      },
+
+    );
+
+    print(request.body);
+  }
+
 
   Future<void> uploadMedia(String ip, Media mediaFile, {String? description, SecretKey? aesKey}) async{
     var url = Uri.parse(('$ip/media').toString());

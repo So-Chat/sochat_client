@@ -121,6 +121,7 @@ class ChatController extends StateNotifier<ChatControllerState> {
 
   Future<void> saveFile(Media media) async {
     String? outputFile = await FilePicker.saveFile(
+      lockParentWindow: true,
       dialogTitle: 'Select where to save your file',
       fileName: media.fileName,
     );
@@ -128,6 +129,11 @@ class ChatController extends StateNotifier<ChatControllerState> {
 
     final ip = _keyService.servers.entries.toList()[ref.read(selectedServerProvider)].value;
     _mediaService.downloadMedia(ip, media, outputFile, aesKey: ref.read(selectedChatProvider.notifier).state?.chatKeys.last.key);
+  }
+
+  Future<void> deleteMedia(Media media) async {
+    final ip = _keyService.servers.entries.toList()[ref.read(selectedServerProvider)].value;
+    _mediaService.deleteMedia(ip, media);
   }
 
 }

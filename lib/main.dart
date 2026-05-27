@@ -45,7 +45,7 @@ void main() async {
     windowManager.addListener(DesktopWindowListener());
 
     await trayManager.setIcon(
-      Platform.isWindows ? 'assets/icons/tray_icon.ico' : 'assets/icons/tray_icon.png',
+      Platform.isWindows ? 'assets/icon/1024-icon.png' : 'assets/icon/1024-icon.png',
     );
     await trayManager.setToolTip('SoChat');
 
