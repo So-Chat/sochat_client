@@ -76,7 +76,6 @@ class WebSocketService{
   }
 
   Future<void> connect() async {
-
     String webSocketIp = "ws${_keyService.servers.entries.toList()[_ref.read(selectedServerProvider)].value.substring(4)}/ws";
 
     channel = IOWebSocketChannel.connect(
@@ -150,7 +149,12 @@ class WebSocketService{
         default:
           debugPrint("Unhandled type: ${messagg.type}");
       }
-    });
+    },
+        onDone: () {
+      debugPrint("Connection done");
+    }, onError: (e, st) {
+          debugPrint("WS ERROR: $e");
+        });
   }
 
 

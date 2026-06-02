@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:sochat_client/context/notifications/inapp_notifications_manager.dart';
+import 'package:sochat_client/modules/calls/turn_credentials.dart';
 import 'package:sochat_client/modules/chats/chat_service.dart';
 import 'package:sochat_client/modules/media_capture/capture_service.dart';
 import 'package:sochat_client/modules/notifications/notifications_service.dart';
@@ -82,13 +83,20 @@ class CallService {
     });
   }
 
-  Future<RTCPeerConnection> createPeer() async {
+  Future<RTCPeerConnection> createPeer(TurnCredentials turnCredentials) async {
 
     final configuration = {
       'iceServers': [
         {'urls': 'stun:stun.l.google.com:19302'},
+        {
+          "urls": 'turn:0.0.0.0:3478?transport=udp',
+          "username": turnCredentials.username,
+          "credential": turnCredentials.credentials
+        }
       ]
     };
+
+    print("init peer with conf $configuration");
 
     final pc = await createPeerConnection(configuration);
 
@@ -99,7 +107,7 @@ class CallService {
     await localRenderer?.initialize();
 
     localRenderer?.srcObject = _captureService.localStream;
-
+    remoteRenderer?.srcObject = _captureService.localStream;
     remoteRenderer?.audioOutput(_captureService.selectedAudioOutput!.deviceId);
 
     if (_captureService.localStream == null) {
@@ -110,8 +118,11 @@ class CallService {
     }
 
     pc.onTrack = (RTCTrackEvent event) async {
+      print("--- ПОЙМАН ТРЕК: ${event.track.kind} ---");
+
       if (event.streams.isNotEmpty) {
         remoteRenderer?.srcObject = event.streams.first;
+
         if (event.track.kind == 'audio') {
           event.track.enabled = true;
         }
@@ -162,11 +173,12 @@ class CallService {
   Future<void> startCall(int userId, int chatId) async {
     //await _captureService.initialize(audioId: _captureService.selectedAudioInput!.deviceId);
 
+    TurnCredentials turnCredentials = await getCredentials();
 
     //localRenderer = RTCVideoRenderer();
     //localRenderer!.srcObject = _captureService.localStream;
 
-    peerConnection = await createPeer();
+    peerConnection = await createPeer(turnCredentials);
 
     final offer = await peerConnection!.createOffer();
     await peerConnection!.setLocalDescription(offer);
@@ -182,7 +194,9 @@ class CallService {
 
   Future<void> handleOffer(String sdp) async {
     //await _captureService.initialize(audioId: _captureService.selectedAudioInput!.deviceId);
-    peerConnection = await createPeer();
+    TurnCredentials turnCredentials = await getCredentials();
+
+    peerConnection = await createPeer(turnCredentials);
 
 
     if (peerConnection == null) { throw Exception("peerConnection is null"); }
@@ -247,4 +261,10 @@ class CallService {
     }
     _ref.read(isInCallProvider.notifier).state = false;
   }
+
+  Future<TurnCredentials> getCredentials() async {
+    final request = await _webSocket.sendRequest(MessagePacket(type: "turn_credentials_get", payload: {}));
+    return TurnCredentials(request.payload["username"], request.payload["credential"]);
+  }
+
 }
