@@ -18,7 +18,7 @@ final mediaCaptureServiceProvider = FutureProvider<CaptureService>((ref) async {
       service.bootstrapPc!.close();
       service.bootstrapPc!.dispose();
     }
-    service.dispose();
+    service.disposeLocalStream();
   });
 
   return service;
@@ -42,43 +42,50 @@ class CaptureService {
 
   RTCPeerConnection? bootstrapPc;
 
-  Future<void> initialize({String? audioId, String? videoId, bool audio = true, bool video = true}) async {
+  Future<void> initialize({String? audioId, String? videoId, bool audio = true, bool video = false, bool removeAfter = true}) async {
     if (_localStream != null) {
-      _localStream!.dispose();
-      _localStream = null;
+      disposeLocalStream();
     }
     _localStream = await navigator.mediaDevices.getUserMedia({
       'audio': audioId != null
           ? {
-        'deviceId': {'exact': audioId.toString()}
+        'deviceId': audioId.toString(),
+        'sourceId': audioId.toString(),
+        'echoCancellation': false,
+        'googEchoCancellation': false,
+        'googEchoCancellation2': false,
+        'googNoiseSuppression': false,
+        'googNoiseSuppression2': false,
+        'googAutoGainControl': false,
+        'googHighpassFilter': false,
       }
           : audio,
       'video': videoId != null
           ? {
-        'deviceId': {'exact': videoId.toString()}
+        'deviceId': videoId.toString(),
+        'sourceId': videoId.toString(),
       }
           : video,
     });
-
 
     print(_localStream?.getVideoTracks().length);
 
     final videoTrack = _localStream?.getVideoTracks();
     final audioTrack = _localStream?.getAudioTracks();
-
-    print("STREAM CREATED");
-
     await Future.delayed(Duration(seconds: 2));
 
     final allDevices = await navigator.mediaDevices.enumerateDevices();
 
-    print("DEVICES: ${allDevices.length}");
-
     await configureDevices(allDevices, videoTrack, audioTrack);
+
+    if (removeAfter) {
+      disposeLocalStream();
+      return;
+    }
   }
 
   Future<void> configureDevices(List<MediaDeviceInfo> allDevices, List<MediaStreamTrack>? videoTrack, List<MediaStreamTrack>? audioTrack) async {
-    selectedAudioOutput = allDevices.where((d) => d.kind == "audiooutput",).firstOrNull;
+    selectedAudioOutput ??= allDevices.where((d) => d.kind == "audiooutput",).firstOrNull;
 
     for (final d in allDevices) {
       if (d.kind == "audioinput") {
@@ -86,7 +93,7 @@ class CaptureService {
         if (audioTrack != null && audioTrack.isNotEmpty) {
           final audioSettings = audioTrack.first.getSettings();
           print(audioSettings);
-          if (d.deviceId == audioSettings["deviceId"]) {
+          if (d.deviceId == audioSettings["deviceId"] && selectedAudioInput == null) {
             selectedAudioInput = d;
           }
         }
@@ -97,7 +104,7 @@ class CaptureService {
         if (videoTrack != null && videoTrack.isNotEmpty) {
           final videoSettings = videoTrack.first.getSettings();
           print(videoSettings);
-          if (d.deviceId == videoSettings["deviceId"]) {
+          if (d.deviceId == videoSettings["deviceId"] && selectedVideoInput == null) {
             selectedVideoInput = d;
           }
         }
@@ -127,28 +134,13 @@ class CaptureService {
     }
   }
 
-  Future<MediaStream> initLocalStream() async {
-    if (_localStream != null) { await dispose(); }
-
-    final constraints = <String, dynamic>{
-      'audio': userAudio == true,
-      'video': userVideo == true,
-    };
-
-    final stream = await navigator.mediaDevices.getUserMedia(constraints);
-
-    _localStream = stream;
-    
-    return stream;
-  }
-
   Future<void> playRemoteAudio(MediaStream stream) async {
     final audioRenderer = RTCVideoRenderer();
     await audioRenderer.initialize();
     audioRenderer.srcObject = stream;
   }
 
-  Future<void> dispose() async{
+  Future<void> disposeLocalStream() async{
     for (final track in _localStream?.getTracks() ?? []){
       await track.stop();
     }
@@ -159,7 +151,6 @@ class CaptureService {
   Future<List<MediaDeviceInfo>> getDeviceList() async {
     final devices = await navigator.mediaDevices.enumerateDevices();
 
-    print('DEVICES LENGTH: ${devices.length}');
     for (final d in devices) {
       print('${d.kind} | ${d.label} | ${d.deviceId}');
     }

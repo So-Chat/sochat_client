@@ -82,10 +82,15 @@ class CallWindowState extends ConsumerState<CallWindow> {
                     spacing: 8,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      // TODO: Change back when figure out with video
+                      /*
                       callController.localRenderer?.srcObject != null && callController.userVideo ?
                         Flexible(child: RTCVideoView(callController.localRenderer!)) : UserInCall(userId: 1),
                       callController.remoteRenderer?.srcObject != null ?
-                        Flexible(child: RTCVideoView(callController.remoteRenderer!)) : UserInCall(userId: 1)
+                        Flexible(child: RTCVideoView(callController.remoteRenderer!)) : UserInCall(userId: 1),*/
+
+                      if (callController.localRenderer != null) SizedBox(width: 200, height: 200, child: RTCVideoView(callController.localRenderer!)),
+                      if (callController.remoteRenderer != null) SizedBox(width: 200, height: 200, child: RTCVideoView(callController.remoteRenderer!))
                     ],
                   ),
                 ),

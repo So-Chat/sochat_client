@@ -12,8 +12,12 @@ class ContextMenuButton extends ConsumerWidget {
   final Widget? leading;
   final String? description;
   final double? width;
+  final double? height;
 
-  ContextMenuButton({super.key, required this.text, required this.onTap, this.leading, this.description, this.color, this.width});
+  final Alignment? alignment;
+  final CrossAxisAlignment? textAlignment;
+
+  ContextMenuButton({super.key, required this.text, required this.onTap, this.leading, this.description, this.color, this.width, this.height, this.textAlignment, this.alignment});
 
   Color? color;
 
@@ -32,12 +36,13 @@ class ContextMenuButton extends ConsumerWidget {
           borderRadius: BorderRadius.circular(10),
           child: Container(
             width: width ?? 230,
-            alignment: Alignment.centerLeft,
+            height: height,
+            alignment: alignment ?? Alignment.centerLeft,
             decoration: BoxDecoration(
                 color: Colors.transparent
             ),
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 10),
+              padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
               child: Row(
                 spacing: 10,
                 children: [
@@ -45,13 +50,13 @@ class ContextMenuButton extends ConsumerWidget {
                     SizedBox(width: 44, child: leading!)
                   ],
                   Expanded(child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: textAlignment ?? CrossAxisAlignment.start,
                     children: [
                       if (description != null) ...[
-                        Text(text, style: Theme.of(context).textTheme.titleMedium,),
-                        Text(description! , style: Theme.of(context).textTheme.labelSmall,),
+                        Text(text, style: Theme.of(context).textTheme.titleMedium),
+                        Text(description! , style: Theme.of(context).textTheme.labelSmall, overflow: TextOverflow.ellipsis, maxLines: 1,),
                       ] else ...[
-                        Text(text, style: Theme.of(context).textTheme.bodyMedium),
+                        Text(text, style: Theme.of(context).textTheme.bodyMedium, overflow: TextOverflow.ellipsis, maxLines: 1,),
                       ]
                     ],
                   ))

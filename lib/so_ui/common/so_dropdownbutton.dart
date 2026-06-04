@@ -39,12 +39,14 @@ class _SoDropdownButtonState extends ConsumerState<SoDropdownButton> {
   @override
   Widget build(BuildContext context) {
     return SoButton(
-      width: widget.width , height: widget.height,
+      width: widget.width ?? double.maxFinite, height: widget.height ?? double.maxFinite,
       borderColor: widget.borderColor, color: widget.color,
+      alignment: Alignment.centerLeft,
 
-      key: buttonKey, child: selectedValue != null ? Text(selectedValue!.value,
-        style: Theme.of(context).textTheme.bodyMedium,) :
-          widget.emptyText != null ? Text(widget.emptyText!, style: Theme.of(context).textTheme.labelMedium) : Container(),
+      key: buttonKey,
+        child: SizedBox(width: double.maxFinite, child: Padding(padding: EdgeInsetsGeometry.symmetric(horizontal: 8), child: selectedValue != null ?
+        Text(selectedValue!.value, style: Theme.of(context).textTheme.bodyMedium, overflow: TextOverflow.ellipsis, maxLines: 1) :
+          widget.emptyText != null ? Text(widget.emptyText!, style: Theme.of(context).textTheme.labelMedium) : Container(),)),
       onPressed: () {
         final RenderBox box = buttonKey.currentContext!.findRenderObject() as RenderBox;
         Offset globalPosition = box.localToGlobal(Offset.zero);
@@ -56,13 +58,14 @@ class _SoDropdownButtonState extends ConsumerState<SoDropdownButton> {
         );
 
         showContextMenu(context, menuPosition,
-            items: widget.items.entries.map((k) => ContextMenuButton(width: widget.dropdownWidth!.toDouble(), text: k.value,
+            items: widget.items.entries.map((k) => ContextMenuButton(width: widget.dropdownWidth!.toDouble(), height: widget.height, text: k.value,
                 onTap: () { selectedValue = k;
-                if (widget.onChanged != null) { widget.onChanged!.call(k); };
-                setState(() {}); }), ).toList(),
+                if (widget.onChanged != null) { widget.onChanged!.call(k); }
+                setState(() {}); },) ).toList(),
             ref,
             height: widget.dropdownHeight, width: widget.dropdownWidth);
       });
     // привет как дела?
+    // привет, всё круто :D
   }
 }

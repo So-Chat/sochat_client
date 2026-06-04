@@ -24,7 +24,7 @@ final callServiceProvider = FutureProvider<CallService>((ref) async {
   final capture = await ref.watch(mediaCaptureServiceProvider.future);
 
   ref.onDispose(() async {
-    await capture.dispose();
+    await capture.disposeLocalStream();
   });
 
   return CallService(await ref.read(webSocketProvider.future), capture, ref.read(chatsServiceProvider.notifier), ref.read(inAppNotificationsManagerProvider.notifier), ref);
@@ -96,8 +96,6 @@ class CallService {
       ]
     };
 
-    print("init peer with conf $configuration");
-
     final pc = await createPeerConnection(configuration);
 
     remoteRenderer = RTCVideoRenderer();
@@ -107,8 +105,6 @@ class CallService {
     await localRenderer?.initialize();
 
     localRenderer?.srcObject = _captureService.localStream;
-    remoteRenderer?.srcObject = _captureService.localStream;
-    remoteRenderer?.audioOutput(_captureService.selectedAudioOutput!.deviceId);
 
     if (_captureService.localStream == null) {
       throw Exception("NO LOCAL STREAM");
@@ -118,35 +114,16 @@ class CallService {
     }
 
     pc.onTrack = (RTCTrackEvent event) async {
-      print("--- ПОЙМАН ТРЕК: ${event.track.kind} ---");
+      if (event.track.kind == 'audio') {
+        event.track.enabled = true;
+        if (event.streams.isNotEmpty && remoteRenderer != null) {
+          remoteRenderer!.srcObject = event.streams.first;
 
-      if (event.streams.isNotEmpty) {
-        remoteRenderer?.srcObject = event.streams.first;
-
-        if (event.track.kind == 'audio') {
-          event.track.enabled = true;
+          if (_captureService.selectedAudioOutput?.deviceId != null) {
+            await remoteRenderer!.audioOutput(_captureService.selectedAudioOutput!.deviceId);
+          }
         }
       }
-    };
-
-
-    pc.onIceConnectionState = (state) {
-      print("ICE connection state: $state");
-    };
-    pc.onConnectionState = (state) {
-      print("Peer connection state: $state");
-    };
-
-    pc.onIceGatheringState = (state) {
-      print('ICE gathering: $state');
-    };
-
-    pc.onSignalingState = (state) {
-      print('Signaling: $state');
-    };
-
-    pc.onConnectionState = (state) {
-      print("PC STATE: $state");
     };
 
     pc.onIceConnectionState = (error) {
@@ -171,12 +148,8 @@ class CallService {
   }
 
   Future<void> startCall(int userId, int chatId) async {
-    //await _captureService.initialize(audioId: _captureService.selectedAudioInput!.deviceId);
-
+    await _captureService.initialize(audioId: _captureService.selectedAudioInput!.deviceId, removeAfter: false);
     TurnCredentials turnCredentials = await getCredentials();
-
-    //localRenderer = RTCVideoRenderer();
-    //localRenderer!.srcObject = _captureService.localStream;
 
     peerConnection = await createPeer(turnCredentials);
 
@@ -193,7 +166,8 @@ class CallService {
   }
 
   Future<void> handleOffer(String sdp) async {
-    //await _captureService.initialize(audioId: _captureService.selectedAudioInput!.deviceId);
+    await _captureService.initialize(audioId: _captureService.selectedAudioInput!.deviceId, removeAfter: false);
+
     TurnCredentials turnCredentials = await getCredentials();
 
     peerConnection = await createPeer(turnCredentials);
@@ -248,17 +222,67 @@ class CallService {
   }
 
   Future<void> callEnd() async {
-    final request = await _webSocket.sendRequest(MessagePacket(type: "call_end", payload: {}));
-    handleCallEnd(request.payload);
+    _webSocket.addToSink(MessagePacket(type: "call_end", payload: {}).toJson());
   }
 
   Future<void> handleCallEnd(Map<String, dynamic> payload) async {
-    if (payload["success"] == "true") {
-      peerConnection?.dispose();
-      localRenderer?.dispose();
+    if (payload["success"] != true) return;
+
+    try {
+      if (peerConnection != null) {
+        try {
+          var transceivers = await peerConnection!.getTransceivers();
+          for (var transceiver in transceivers) {
+            await transceiver.stop();
+          }
+          var receivers = await peerConnection!.getReceivers();
+          for (var receiver in receivers) {
+            await receiver.track?.stop();
+          }
+
+          var senders = await peerConnection!.getSenders();
+          for (var sender in senders) {
+            await sender.track?.stop();
+          }
+        } catch (e) {
+          print("Error stopping peer connection tracks/transceivers: $e");
+        }
+      }
+
+      final localStream = localRenderer?.srcObject;
+      if (localRenderer != null) localRenderer!.srcObject = null;
+
+      final remoteStream = remoteRenderer?.srcObject;
+      if (remoteRenderer != null) remoteRenderer!.srcObject = null;
+
+
+      if (localStream != null) {
+        for (var track in localStream.getTracks()) { await track.stop(); }
+      }
+      if (remoteStream != null) {
+        for (var track in remoteStream.getTracks()) { await track.stop(); }
+      }
+
+      if (peerConnection != null) {
+        try {
+          await peerConnection!.close();
+          await peerConnection!.dispose();
+        } catch (e) {
+          print("PeerConnection close/dispose error: $e");
+        }
+      }
+
+      await localRenderer?.dispose();
+      await remoteRenderer?.dispose();
+
+    } catch (e) {
+      print("Caught error: $e");
+    } finally {
+      remoteRenderer = null;
       localRenderer = null;
       peerConnection = null;
     }
+
     _ref.read(isInCallProvider.notifier).state = false;
   }
 
@@ -266,5 +290,4 @@ class CallService {
     final request = await _webSocket.sendRequest(MessagePacket(type: "turn_credentials_get", payload: {}));
     return TurnCredentials(request.payload["username"], request.payload["credential"]);
   }
-
 }

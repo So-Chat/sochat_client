@@ -23,9 +23,15 @@ class _MultimediaSettingsState extends ConsumerState<MultimediaSettings> {
     futureInit();
   }
 
+  @override
+  void dispose() {
+    futureDispose();
+    super.dispose();
+  }
+
   void futureInit() async {
-    final service =
-    await ref.read(mediaCaptureServiceProvider.future);
+    final service = await ref.read(mediaCaptureServiceProvider.future);
+    await service.initialize(audioId: service.selectedAudioInput!.deviceId, removeAfter: false);
 
     if (!mounted) return;
 
@@ -42,9 +48,13 @@ class _MultimediaSettingsState extends ConsumerState<MultimediaSettings> {
         }
         print("${d.kind} ${d.label}");
       }
-  });
+    });
   }
 
+  void futureDispose() async {
+    final service = await ref.read(mediaCaptureServiceProvider.future);
+    service.disposeLocalStream();
+  }
   @override
   Widget build(BuildContext context) {
     final service = ref.watch(mediaCaptureServiceProvider);
@@ -61,7 +71,7 @@ class _MultimediaSettingsState extends ConsumerState<MultimediaSettings> {
               spacing: 10,
               mainAxisAlignment: .center,
               children: [
-                // TODO: Made it more flexible
+                // TODO: Make it more flexible
                 SoDropdownButton(items: { for (var d in audioOutputDevices) d.deviceId : d.label },
                   width: 350, height: 50, dropdownHeight: 400, dropdownWidth: 350, borderColor: context.colors.outline, emptyText: "No Audio Output",
                     onChanged: (value) { captureService.selectedAudioOutput = captureService.audioOutputDevices.firstWhere((d) => d.deviceId == value.key ); },
