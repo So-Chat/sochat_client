@@ -104,7 +104,7 @@ class WebSocketService{
         _pendingRequests.remove(requestId);
       }
 
-      if (messagg.payload["success"] == "false"){
+      if (messagg.payload["success"] == false){
         _ref.read(inAppNotificationsManagerProvider.notifier).addUpdate(
           SoNotification(
             icon: Icons.error_outline,

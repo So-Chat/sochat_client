@@ -835,7 +835,9 @@ class Menus {
         text: "Delete",
         leading: Icon(Icons.delete_forever),
         color: context.colors.critical,
-        onTap: () {},
+        onTap: () {
+          ref.read(chatControllerProvider.notifier).deleteMessage(message.id);
+        },
       ),
     ];
   }

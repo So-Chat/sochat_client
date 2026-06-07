@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
@@ -8,8 +7,8 @@ class SoButton extends ConsumerWidget {
   const SoButton({
     super.key,
     required this.child,
-    this.height,
-    this.width,
+    this.height = 48,
+    this.width = double.infinity,
     this.onPressed,
     this.onSecondaryTapDown,
     this.color,
@@ -18,7 +17,7 @@ class SoButton extends ConsumerWidget {
   });
 
   final Widget child;
-  final double? height;
+  final double? height ;
   final double? width;
   final VoidCallback? onPressed;
   final ValueChanged<Offset>? onSecondaryTapDown;
@@ -32,8 +31,11 @@ class SoButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
-      height: height,
-      width: width,
+      key: key,
+      width: width ?? double.infinity,
+      constraints: BoxConstraints(
+        minHeight: height ?? 48,
+      ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
         border: Border.all(

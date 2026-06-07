@@ -131,6 +131,10 @@ class ChatController extends StateNotifier<ChatControllerState> {
     _mediaService.downloadMedia(ip, media, outputFile, aesKey: ref.read(selectedChatProvider.notifier).state?.chatKeys.last.key);
   }
 
+  Future<void> deleteMessage(int id) async {
+    await ref.read(messageServiceProvider.notifier).deleteMessage(id);
+  }
+
   Future<void> deleteMedia(Media media) async {
     final ip = _keyService.servers.entries.toList()[ref.read(selectedServerProvider)].value;
     _mediaService.deleteMedia(ip, media);

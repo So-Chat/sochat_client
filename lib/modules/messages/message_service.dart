@@ -68,6 +68,7 @@ class MessageService extends StateNotifier<MessagesState> {
           break;
         }
         case "message_delete":{
+          handleDeleteMessage(message);
           break;
         }
         case "message_read":{
@@ -208,12 +209,32 @@ class MessageService extends StateNotifier<MessagesState> {
 
     currentMessages.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
-    final updatedMap2 = {
+    final updatedMap = {
       ...currentMap,
       message.chatId: currentMessages,
     };
 
-    notifier.state = updatedMap2;
+    notifier.state = updatedMap;
+  }
+
+  void removeMessage(int id, int chatId) {
+    final notifier = ref.read(chatMessagesProvider.notifier);
+    final currentMap = notifier.state;
+
+    final currentMessages = List<Message>.from(
+      currentMap[chatId] ?? [],
+    );
+
+    if (!currentMessages.any((m) => m.id == id)) return;
+
+    currentMessages.removeWhere((message) => message.id == id);
+
+    final updatedMap = {
+      ...currentMap,
+      chatId: currentMessages,
+    };
+
+    notifier.state = updatedMap;
   }
 
   Future<void> receiveLastReadMessage(MessagePacket requestPacket) async {
@@ -229,4 +250,22 @@ class MessageService extends StateNotifier<MessagesState> {
     final request = await _webSocket.sendRequest(message);
     receiveLastReadMessage(request);
   }
+
+  Future<void> handleDeleteMessage(MessagePacket requestPacket) async {
+    Map<String, dynamic> messageJson = jsonDecode(requestPacket.payload["message"]);
+
+    final id = messageJson["id"];
+    final chatId = messageJson["chatId"];
+
+    removeMessage(id, chatId);
+  }
+
+  Future<void> deleteMessage(int id) async {
+    MessagePacket message = MessagePacket(type: "message_delete", payload: {
+      "id": id,
+    });
+    final request = await _webSocket.sendRequest(message);
+    handleDeleteMessage(request);
+  }
+
 }

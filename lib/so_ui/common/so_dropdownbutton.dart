@@ -5,10 +5,10 @@ import 'package:sochat_client/context/context_menu_button.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
 
 class SoDropdownButton extends ConsumerStatefulWidget {
-  const SoDropdownButton({super.key, required this.items, this.height, this.width, this.borderColor, this.color, this.dropdownHeight, this.dropdownWidth, this.onChanged, this.emptyText, this.initialValue});
+  const SoDropdownButton({super.key, required this.items, this.maxHeight, this.maxWidth, this.borderColor, this.color, this.dropdownHeight, this.dropdownWidth, this.onChanged, this.emptyText, this.initialValue});
 
-  final double? height;
-  final double? width;
+  final double? maxHeight;
+  final double? maxWidth;
   final Color? borderColor;
   final Color? color;
   final int? dropdownHeight;
@@ -28,9 +28,6 @@ class SoDropdownButton extends ConsumerStatefulWidget {
 class _SoDropdownButtonState extends ConsumerState<SoDropdownButton> {
 
   MapEntry<String, dynamic>? selectedValue;
-
-  final GlobalKey buttonKey = GlobalKey();
-
   @override
   void initState() {
     if (widget.initialValue != null) selectedValue = widget.initialValue;
@@ -39,33 +36,55 @@ class _SoDropdownButtonState extends ConsumerState<SoDropdownButton> {
   @override
   Widget build(BuildContext context) {
     return SoButton(
-      width: widget.width ?? double.maxFinite, height: widget.height ?? double.maxFinite,
-      borderColor: widget.borderColor, color: widget.color,
-      alignment: Alignment.centerLeft,
+        width: widget.maxWidth ?? double.infinity, height: widget.maxHeight,
+        borderColor: widget.borderColor, color: widget.color,
+        alignment: Alignment.centerLeft,
 
-      key: buttonKey,
-        child: SizedBox(width: double.maxFinite, child: Padding(padding: EdgeInsetsGeometry.symmetric(horizontal: 8), child: selectedValue != null ?
-        Text(selectedValue!.value, style: Theme.of(context).textTheme.bodyMedium, overflow: TextOverflow.ellipsis, maxLines: 1) :
-          widget.emptyText != null ? Text(widget.emptyText!, style: Theme.of(context).textTheme.labelMedium) : Container(),)),
-      onPressed: () {
-        final RenderBox box = buttonKey.currentContext!.findRenderObject() as RenderBox;
-        Offset globalPosition = box.localToGlobal(Offset.zero);
-        final Size size = box.size;
+        key: widget.key,
 
-        final Offset menuPosition = Offset(
-          globalPosition.dx + (widget.width! - size.width) / 2,
-          globalPosition.dy,
-        );
+        onPressed: () {
+          final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
+          if (renderBox == null || !renderBox.attached) return;
 
-        showContextMenu(context, menuPosition,
-            items: widget.items.entries.map((k) => ContextMenuButton(width: widget.dropdownWidth!.toDouble(), height: widget.height, text: k.value,
-                onTap: () { selectedValue = k;
+          final double actualWidth = renderBox.size.width;
+          final double actualHeight = renderBox.size.height;
+
+          final Offset globalPos = renderBox.localToGlobal(Offset.zero);
+
+          final Offset menuPosition = Offset(
+            globalPos.dx,
+            globalPos.dy + actualHeight,
+          );
+
+          showContextMenu(
+            context,
+            menuPosition,
+            items: widget.items.entries.map((k) => ContextMenuButton(
+              width: actualWidth,
+              height: widget.maxHeight,
+              text: k.value,
+              onTap: () {
+                selectedValue = k;
                 if (widget.onChanged != null) { widget.onChanged!.call(k); }
-                setState(() {}); },) ).toList(),
+                setState(() {});
+              },
+            )).toList(),
             ref,
-            height: widget.dropdownHeight, width: widget.dropdownWidth);
-      });
-    // привет как дела?
-    // привет, всё круто :D
+            height: widget.dropdownHeight,
+            width: actualWidth.toInt(),
+          );
+        },
+
+        child: Padding(
+          padding: EdgeInsetsGeometry.symmetric(horizontal: 8),
+          child: selectedValue != null ? Text(
+              selectedValue!.value,
+              style: Theme.of(context).textTheme.bodyMedium,
+              overflow: TextOverflow.ellipsis, maxLines: 1
+          ) : widget.emptyText != null ? Text(widget.emptyText!, style: Theme.of(context).textTheme.labelMedium)
+              : Container(),
+        ));
+        // привет как дела?
+        // привет, всё круто :D
   }
 }

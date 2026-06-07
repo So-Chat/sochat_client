@@ -14,9 +14,12 @@ class MultimediaSettings extends ConsumerStatefulWidget {
 
 class _MultimediaSettingsState extends ConsumerState<MultimediaSettings> {
 
+  late final CaptureService mediaCaptureService;
+
   late List<MediaDeviceInfo> audioInputDevices = [];
   late List<MediaDeviceInfo> audioOutputDevices = [];
   late List<MediaDeviceInfo> videoInputDevices = [];
+
   @override
   void initState() {
     super.initState();
@@ -30,12 +33,12 @@ class _MultimediaSettingsState extends ConsumerState<MultimediaSettings> {
   }
 
   void futureInit() async {
-    final service = await ref.read(mediaCaptureServiceProvider.future);
-    await service.initialize(audioId: service.selectedAudioInput!.deviceId, removeAfter: false);
+    mediaCaptureService = await ref.read(mediaCaptureServiceProvider.future);
+    await mediaCaptureService.initialize(audioId: mediaCaptureService.selectedAudioInput!.deviceId, removeAfter: false);
 
     if (!mounted) return;
 
-    final allDevices = await service.getDeviceList();
+    final allDevices = await mediaCaptureService.getDeviceList();
     setState(() {
       for (final d in allDevices) {
         if (d.kind == "audioinput") {
@@ -52,46 +55,80 @@ class _MultimediaSettingsState extends ConsumerState<MultimediaSettings> {
   }
 
   void futureDispose() async {
-    final service = await ref.read(mediaCaptureServiceProvider.future);
-    service.disposeLocalStream();
+    mediaCaptureService.disposeLocalStream();
   }
+
   @override
   Widget build(BuildContext context) {
     final service = ref.watch(mediaCaptureServiceProvider);
-
 
     return service.when(data: (captureService) {
       return Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
           spacing: 8,
-          crossAxisAlignment: .center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Row(
               spacing: 10,
-              mainAxisAlignment: .center,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // TODO: Make it more flexible
-                SoDropdownButton(items: { for (var d in audioOutputDevices) d.deviceId : d.label },
-                  width: 350, height: 50, dropdownHeight: 400, dropdownWidth: 350, borderColor: context.colors.outline, emptyText: "No Audio Output",
-                    onChanged: (value) { captureService.selectedAudioOutput = captureService.audioOutputDevices.firstWhere((d) => d.deviceId == value.key ); },
-                    initialValue: captureService.selectedAudioOutput != null ?
-                    MapEntry(captureService.selectedAudioOutput!.deviceId, captureService.selectedAudioOutput!.label) : null
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 350),
+                      child: SoDropdownButton(
+                          items: { for (var d in audioOutputDevices) d.deviceId : d.label },
+                          maxHeight: 50,
+                          dropdownHeight: 400,
+                          dropdownWidth: 350,
+                          borderColor: context.colors.outline,
+                          emptyText: "No Audio Output",
+                          onChanged: (value) { captureService.selectedAudioOutput = captureService.audioOutputDevices.firstWhere((d) => d.deviceId == value.key ); },
+                          initialValue: captureService.selectedAudioOutput != null ?
+                          MapEntry(captureService.selectedAudioOutput!.deviceId, captureService.selectedAudioOutput!.label) : null
+                      ),
+                    ),
+                  ),
                 ),
-                SoDropdownButton(items: { for (var d in audioInputDevices) d.deviceId : d.label },
-                  width: 350, height: 50, dropdownHeight: 400, dropdownWidth: 350, borderColor: context.colors.outline, emptyText: "No Audio Input",
-                    onChanged: (value) { captureService.selectedAudioInput = captureService.audioInputDevices.firstWhere((d) => d.deviceId == value.key); },
-                    initialValue: captureService.selectedAudioInput != null ?
-                    MapEntry(captureService.selectedAudioInput!.deviceId, captureService.selectedAudioInput!.label) : null
+
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 350),
+                      child: SoDropdownButton(
+                          items: { for (var d in audioInputDevices) d.deviceId : d.label },
+                          maxHeight: 50,
+                          dropdownHeight: 400,
+                          dropdownWidth: 350,
+                          borderColor: context.colors.outline,
+                          emptyText: "No Audio Input",
+                          onChanged: (value) { captureService.selectedAudioInput = captureService.audioInputDevices.firstWhere((d) => d.deviceId == value.key); },
+                          initialValue: captureService.selectedAudioInput != null ?
+                          MapEntry(captureService.selectedAudioInput!.deviceId, captureService.selectedAudioInput!.label) : null
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
 
-            SoDropdownButton(items: { for (var d in videoInputDevices) d.deviceId : d.label },
-              width: 710, height: 50, dropdownHeight: 400, dropdownWidth: 710, borderColor: context.colors.outline, emptyText: "No Video Input",
-              onChanged: (value) { captureService.selectedVideoInput = captureService.videoInputDevices.firstWhere((d) => d.deviceId == value.key); },
-                initialValue: captureService.selectedVideoInput != null ?
-              MapEntry(captureService.selectedVideoInput!.deviceId, captureService.selectedVideoInput!.label) : null
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 710),
+              child: SizedBox(
+                height: 50,
+                width: double.infinity,
+                child: SoDropdownButton(
+                    items: { for (var d in videoInputDevices) d.deviceId : d.label },
+                    maxHeight: 50, dropdownHeight: 400, dropdownWidth: 710,
+                    borderColor: context.colors.outline, emptyText: "No Video Input",
+                    onChanged: (value) { captureService.selectedVideoInput = captureService.videoInputDevices.firstWhere((d) => d.deviceId == value.key); },
+                    initialValue: captureService.selectedVideoInput != null ?
+                    MapEntry(captureService.selectedVideoInput!.deviceId, captureService.selectedVideoInput!.label) : null
+                ),
+              ),
             ),
           ],
         ),
