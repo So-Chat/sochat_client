@@ -17,10 +17,15 @@ class Chat {
 
   bool inCall = false ;
 
+  Message? editMessage;
+  String? uncompletedContent;
+
   Chat({
     required this.id,
     required this.title,
     required this.type,
+    this.editMessage,
+    this.uncompletedContent,
   });
 
   SenderKey? findChatKeyByVersion(int version) {
@@ -48,11 +53,15 @@ class Chat {
     List<Participant>? participants,
     List<SenderKey>? chatKeys,
     Message? lastMessage,
+    Message? editMessage,
+    String? uncompletedContent,
   }) {
     Chat chat = Chat(
       id: id ?? this.id,
       title: title ?? this.title,
       type: type ?? this.type,
+      editMessage: editMessage,
+        uncompletedContent: uncompletedContent
     );
 
     chat.participants = participants ?? List<Participant>.from(this.participants);
@@ -60,6 +69,7 @@ class Chat {
 
     return chat;
   }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other);

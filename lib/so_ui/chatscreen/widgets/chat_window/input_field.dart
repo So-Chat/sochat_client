@@ -4,6 +4,7 @@ import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
 import 'package:sochat_client/modules/media/media_service.dart';
+import 'package:sochat_client/modules/messages/message.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
 import 'package:sochat_client/so_ux/chat_controller.dart';
 
@@ -16,10 +17,9 @@ class InputField extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
 
-    final chatContoller = ref.watch(chatControllerProvider.notifier);
-    final mediaService = ref.watch(mediaServiceProvider);
+    final chatController = ref.watch(chatControllerProvider.notifier);
     final selectedFiles = ref.watch(selectedMediaProvider);
-    final keyService = ref.watch(keyServiceProvider.notifier);
+    final selectedChat = ref.watch(selectedChatProvider);
 
     return Container(
       decoration: BoxDecoration(
@@ -37,6 +37,28 @@ class InputField extends ConsumerWidget {
       ),
       child: Column(
         children: [
+          if (selectedChat!.editMessage != null)
+            ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: 40),
+                child: SoButton(
+                  onPressed: () {
+                    chatController.stopEditing();
+                  },
+                  child: Row(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Row(
+                          children: [
+                            Text("Edit message: ", textAlign: .left, style: Theme.of(context).textTheme.labelMedium),
+                            Text(selectedChat.editMessage!.content, textAlign: .left)
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+            ),
           if (selectedFiles.isNotEmpty)
             ConstrainedBox(
               constraints: BoxConstraints(maxHeight: 100),
@@ -46,7 +68,7 @@ class InputField extends ConsumerWidget {
                 itemBuilder: (context, index) {
                   return SoButton(
                       onPressed: () {
-                        chatContoller.deleteMedia(selectedFiles[index]);
+                        chatController.deleteMedia(selectedFiles[index]);
                         final newList = [...selectedFiles];
                         newList.removeAt(index);
                         ref.read(selectedMediaProvider.notifier).state = newList;
@@ -77,7 +99,7 @@ class InputField extends ConsumerWidget {
                     child: InkWell(
                       borderRadius: BorderRadius.circular(10),
                       onTap: () async {
-                        await chatContoller.requestMedia();
+                        await chatController.requestMedia();
                       },
                       child: Icon(Icons.attach_file),
                     ),
@@ -133,11 +155,21 @@ class InputField extends ConsumerWidget {
                         color: context.colors.foreground,
                         child: InkWell(
                           borderRadius: BorderRadius.circular(10),
-                          onTap: () {
-                            chatContoller.sendMessage(messageInputController.text);
-                            messageInputController.text = "";
+                          onTap: () async {
+                            if (selectedChat.editMessage == null) {
+                              await chatController.sendMessage(messageInputController.text);
+                              messageInputController.text = "";
+                            } else {
+                              final text = messageInputController.text;
+                              final editing = selectedChat.editMessage;
+
+                              await chatController.editMessage(text, editing!.id);
+
+                              messageInputController.clear();
+                              chatController.stopEditing();
+                            }
                             },
-                          child: Icon(Icons.send_sharp),
+                          child: selectedChat.editMessage == null ? Icon(Icons.send_sharp) : Icon(Icons.check),
                         ),
                       ),
                     ),

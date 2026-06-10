@@ -1,5 +1,9 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:sochat_client/modules/chats/chat_service.dart';
+import 'package:sochat_client/modules/messages/message.dart';
 import 'package:sochat_client/so_ui/chatscreen/widgets/chat_window/calls/call_window.dart';
 import 'package:sochat_client/so_ui/chatscreen/widgets/chat_window/message_list.dart';
 import 'package:sochat_client/so_ui/chatscreen/widgets/chat_window/chat_top.dart';
@@ -33,6 +37,8 @@ class ChatWindowState extends ConsumerState<ChatWindow>{
   final TextEditingController messageInputController = TextEditingController();
   late final FocusNode textFieldFocusNode;
 
+  late final ProviderSubscription sub;
+
   @override
   void initState(){
     super.initState();
@@ -49,9 +55,15 @@ class ChatWindowState extends ConsumerState<ChatWindow>{
               return KeyEventResult.ignored;
             } else {
               if (messageInputController.text.trim().isEmpty || messageInputController.text.trim() == "" || messageInputController.text.trim() == " ") KeyEventResult.ignored;
-              chatController.sendMessage(messageInputController.text.trim());
-              messageInputController.clear();
-
+              final selectedChat = ref.read(selectedChatProvider);
+              if (selectedChat != null) {
+                if (selectedChat.editMessage != null) {
+                  chatController.editMessage(messageInputController.text.trim(), selectedChat.id);
+                } else {
+                  chatController.sendMessage(messageInputController.text.trim());
+                }
+                messageInputController.clear();
+              }
               return KeyEventResult.handled;
             }
           }
@@ -67,7 +79,31 @@ class ChatWindowState extends ConsumerState<ChatWindow>{
   Widget build(BuildContext context) {
     final selectedChat = ref.watch(selectedChatProvider);
     final isInCall = ref.watch(isInCallProvider);
-    final chatController = ref.read(chatControllerProvider.notifier);
+
+    ref.listen(selectedChatProvider, (prev, next) {
+      if (prev == next ) return;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final controller = ref.read(chatControllerProvider.notifier);
+
+        if (prev == null) return;
+        if (next?.id == prev.id) return;
+
+        if (prev.editMessage != null) {
+          controller.exitChat(prev, messageInputController.text, prev.uncompletedContent);
+        } else {
+          controller.exitChat(prev, null, messageInputController.text);
+        }
+
+        if (next == null) return;
+
+        if (next.editMessage != null) {
+          messageInputController.text = next.editMessage!.content;
+        } else {
+          messageInputController.text = next.uncompletedContent ?? "";
+        }
+      });
+    });
 
     final FocusNode chatFocusNode = FocusNode(
         onKeyEvent: (FocusNode node, KeyEvent event) {

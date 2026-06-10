@@ -36,6 +36,28 @@ final chatsListProvider = Provider<List<Chat>>((ref) {
   return chats;
 });
 
+final sortedChatsProvider = Provider<List<Chat>>((ref) {
+  final chats = ref.watch(chatsListProvider);
+  final messageMap = ref.watch(chatMessagesProvider);
+
+  final sorted = [...chats]..sort((a, b) {
+    final messagesA = messageMap[a.id] ?? [];
+    final messagesB = messageMap[b.id] ?? [];
+
+    final lastA = messagesA.isNotEmpty
+        ? messagesA.first.timestamp
+        : DateTime.fromMillisecondsSinceEpoch(0);
+
+    final lastB = messagesB.isNotEmpty
+        ? messagesB.first.timestamp
+        : DateTime.fromMillisecondsSinceEpoch(0);
+
+    return lastB.compareTo(lastA);
+  });
+
+  return sorted;
+});
+
 class ChatControllerState {
 
 }
@@ -101,6 +123,17 @@ class ChatController extends StateNotifier<ChatControllerState> {
     ref.read(selectedMediaProvider.notifier).state = [];
   }
 
+  Future<void> editMessage(String content, int id) async {
+    final selectedMedia = ref.read(selectedMediaProvider);
+
+    if (["", " "].any((c) => c == content) && selectedMedia.isEmpty || !selectedMedia.every((m) => m.isLoaded)) { return; }
+
+    final selectedChat = ref.read(selectedChatProvider.notifier).state;
+
+    await _messageService.editMessage(content, id, selectedChat!);
+    ref.read(selectedMediaProvider.notifier).state = [];
+  }
+
   Future<void> requestMedia() async {
     // Get files, converting them to my type for Media that contains ids
     final files = await _mediaService.getFiles();
@@ -138,6 +171,37 @@ class ChatController extends StateNotifier<ChatControllerState> {
   Future<void> deleteMedia(Media media) async {
     final ip = _keyService.servers.entries.toList()[ref.read(selectedServerProvider)].value;
     _mediaService.deleteMedia(ip, media);
+  }
+
+  void startEditing(Message message) {
+    final selectedChat = ref.read(selectedChatProvider);
+    if (selectedChat != null ) {
+      updateChat(selectedChat.copyWith(editMessage: message));
+    }
+  }
+
+  void stopEditing() {
+    final selectedChat = ref.read(selectedChatProvider);
+    if (selectedChat != null ) {
+      updateChat(selectedChat.copyWith(editMessage: null));
+    }
+  }
+
+  Future<void> exitChat(Chat chat, String? editContent, String? uncompletedContent) async {
+    final editMessage = chat.editMessage?.copyWith(content: editContent);
+
+      updateChat(chat.copyWith(editMessage: editMessage,
+          uncompletedContent: uncompletedContent));
+  }
+
+  void updateChat(Chat chat) {
+    ref.read(chatsServiceProvider.notifier).addUpdate(chat);
+    final selectedChat = ref.read(selectedChatProvider);
+
+    if (selectedChat == null) return;
+    if (selectedChat.id == chat.id) {
+      ref.read(selectedChatProvider.notifier).state = chat;
+    }
   }
 
 }

@@ -22,21 +22,11 @@ class ChatList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final chatListProvider = ref.watch(chatsListProvider);
+
     final chatController = ref.watch(chatControllerProvider.notifier);
-    final authService = ref.watch(authServiceProvider);
-    final messageMap = ref.watch(chatMessagesProvider);
     final currentUser = ref.watch(currentUserProvider);
 
-    final sortedChats = [...chatListProvider]..sort((a, b) {
-      final messagesA = messageMap[a.id] ?? [];
-      final messagesB = messageMap[b.id] ?? [];
-
-      DateTime lastA = messagesA.isNotEmpty ? messagesA.first.timestamp : DateTime.now();
-      DateTime lastB = messagesB.isNotEmpty ? messagesB.first.timestamp : DateTime.now();
-
-      return lastB.compareTo(lastA);
-    });
+    final sortedChats = ref.watch(sortedChatsProvider);
 
     return BasePanel(
       flex: 1,

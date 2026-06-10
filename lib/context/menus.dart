@@ -827,9 +827,18 @@ class Menus {
       WidgetRef ref, Message message) {
     return [
       ContextMenuButton(
+        text: "Reply",
+        leading: Icon(Icons.reply),
+        onTap: () {
+
+        },
+      ),
+      ContextMenuButton(
         text: "Edit",
         leading: Icon(Icons.edit),
-        onTap: () {},
+        onTap: () {
+          ref.read(chatControllerProvider.notifier).startEditing(message);
+        },
       ),
       ContextMenuButton(
         text: "Delete",

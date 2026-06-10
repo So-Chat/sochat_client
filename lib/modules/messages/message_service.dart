@@ -55,6 +55,7 @@ class MessageService extends StateNotifier<MessagesState> {
   void startListen() {
     _subscription = _webSocket.messagesMessages.listen((message) {
       switch(message.type){
+        case "message_edit":
         case "message_send":{
           if (message.payload["success"] == "true"){
             break;
@@ -62,9 +63,6 @@ class MessageService extends StateNotifier<MessagesState> {
           Chat chat = ref.read(chatsListProvider).firstWhere((c) => c.id == jsonDecode(message.payload["message"] as String)["chatId"]);
 
           receiveMessage(message, chat);
-          break;
-        }
-        case "message_edit":{
           break;
         }
         case "message_delete":{
@@ -156,6 +154,20 @@ class MessageService extends StateNotifier<MessagesState> {
     }
   }
 
+  Future<void> editMessage(String content, int id, Chat chat) async {
+    String encryptedContent = await _keyService.encryptStringWithAesToString(content, chat.findLatestChatKey()!.key);
+    MessagePacket packet = MessagePacket(type: "message_edit", payload: {
+      "content": encryptedContent,
+      "id": id
+    });
+    final request = await _webSocket.sendRequest(packet);
+
+    if (request.payload["success"] == "true"){
+      receiveMessage(request, chat);
+    }
+  }
+
+
   Future<void> receiveMessage(MessagePacket requestPacket, Chat? chat) async{
 
     chat ??= await _chatService.getChatById(int.parse(requestPacket.payload["chatId"]));
@@ -167,7 +179,7 @@ class MessageService extends StateNotifier<MessagesState> {
 
     messageJson['content'] = await _keyService.decryptWithAes(messageJson['content'], chat.findChatKeyByVersion(messageJson['keyVersion'])!.key);
 
-    final List<dynamic> mediasJson = messageJson['mediaFiles'];
+    final List<dynamic> mediasJson = messageJson['mediaFiles'] ?? [];
     final List<Media> medias = [];
     for (final mediaJson in mediasJson){
       final ip = _keyService.servers.entries.toList()[ref.read(selectedServerProvider)].value;
@@ -203,9 +215,13 @@ class MessageService extends StateNotifier<MessagesState> {
       currentMap[message.chatId] ?? [],
     );
 
-    if (currentMessages.any((m) => m.id == message.id)) return;
+    final messageIndex = currentMessages.indexWhere((m) => m.id == message.id);
 
-    currentMessages.add(message);
+    if (messageIndex != -1) {
+      currentMessages[messageIndex] = message;
+    } else {
+      currentMessages.add(message);
+    }
 
     currentMessages.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 

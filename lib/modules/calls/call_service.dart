@@ -272,6 +272,8 @@ class CallService {
         }
       }
 
+
+
       await localRenderer?.dispose();
       await remoteRenderer?.dispose();
 
@@ -282,6 +284,9 @@ class CallService {
       localRenderer = null;
       peerConnection = null;
     }
+
+    // Change chat call state
+    _ref.read(chatsServiceProvider.notifier).chatList.firstWhere((c) => c.id == payload["chat_id"]).inCall = false;
 
     _ref.read(isInCallProvider.notifier).state = false;
   }

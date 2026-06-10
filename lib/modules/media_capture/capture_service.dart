@@ -44,7 +44,7 @@ class CaptureService {
 
   Future<void> initialize({String? audioId, String? videoId, bool audio = true, bool video = false, bool removeAfter = true}) async {
     if (_localStream != null) {
-      disposeLocalStream();
+      await disposeLocalStream();
     }
     _localStream = await navigator.mediaDevices.getUserMedia({
       'audio': audioId != null
@@ -79,7 +79,7 @@ class CaptureService {
     await configureDevices(allDevices, videoTrack, audioTrack);
 
     if (removeAfter) {
-      disposeLocalStream();
+      await disposeLocalStream();
       return;
     }
   }

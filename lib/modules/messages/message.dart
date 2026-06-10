@@ -69,7 +69,29 @@ class Message {
       content: json['content'] as String,
       timestamp: dateTime,
       keyVersion: json['keyVersion'] as int,
-      mediaFiles: medias
+      mediaFiles: medias,
+    );
+  }
+
+  Message copyWith({
+    int? id,
+    int? chatId,
+    User? sender,
+    int? replyMessageId,
+    String? content,
+    DateTime? timestamp,
+    List<Media>? mediaFiles,
+    int? keyVersion,
+  }) {
+    return Message(
+      id: id ?? this.id,
+      chatId: chatId ?? this.chatId,
+      sender: sender ?? this.sender,
+      replyMessageId: replyMessageId ?? this.replyMessageId,
+      content: content ?? this.content,
+      timestamp: timestamp ?? this.timestamp,
+      mediaFiles: mediaFiles ?? this.mediaFiles,
+      keyVersion: keyVersion ?? this.keyVersion,
     );
   }
 

@@ -133,7 +133,7 @@ class LoginPageWidget extends ConsumerState<LoginWidget> {
                       LoginButton(text: "Purge", color: context.colors.textSecondary, onTap: () { ref.read(localStorageServiceProvider.notifier).purgeData(); }),
                     ],
                   ),
-                  SoButton(color: context.colors.textSecondary, onPressed: () { ref.read(settingsControllerProvider.notifier).changeTheme(); }, child:Text("Theme")),
+                  SoButton(height: 10, color: context.colors.textSecondary, onPressed: () { ref.read(settingsControllerProvider.notifier).changeTheme(); }, child:Text("Theme")),
                 ],
               ),
 
