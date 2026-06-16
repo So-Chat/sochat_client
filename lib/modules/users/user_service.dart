@@ -11,12 +11,16 @@ import '../common/auth_service.dart';
 import '../keys/key_service.dart';
 
 final userServiceProvider = StateNotifierProvider<UserService, UserState>(
-      (ref) => UserService(ref.read(webSocketProvider.future), ref.read(keyServiceProvider.notifier), ref.read(authServiceProvider), ref.read(currentUserProvider), ref),);
+  (ref) => UserService(
+    ref.read(webSocketProvider.future),
+    ref.read(keyServiceProvider.notifier),
+    ref.read(authServiceProvider),
+    ref.read(currentUserProvider),
+    ref,
+  ),
+);
 
-
-class UserState {
-
-}
+class UserState {}
 
 class UserService extends StateNotifier<UserState> {
   late final WebSocketService _webSocket;
@@ -29,20 +33,27 @@ class UserService extends StateNotifier<UserState> {
   final Map<int, User> userBuffer = {};
   StreamSubscription? _subscription;
 
-  UserService(Future<WebSocketService> webSocketFuture, this._keyService, this._authService, this.currentUser, this.ref)
-      : super(UserState()) {
-    webSocketFuture.then((ws) {
-      _webSocket = ws;
-      startListen();
-    }).catchError((error) {
-      throw Exception("WebSocket initialization in ChatService fall in error!\nstacktrace: $error");
-    });
+  UserService(
+    Future<WebSocketService> webSocketFuture,
+    this._keyService,
+    this._authService,
+    this.currentUser,
+    this.ref,
+  ) : super(UserState()) {
+    webSocketFuture
+        .then((ws) {
+          _webSocket = ws;
+          startListen();
+        })
+        .catchError((error) {
+          throw Exception(
+            "WebSocket initialization in ChatService fall in error!\nstacktrace: $error",
+          );
+        });
   }
 
   void startListen() {
-    _subscription = _webSocket.usersMessages.listen((message) {
-
-    });
+    _subscription = _webSocket.usersMessages.listen((message) {});
   }
 
   @override
@@ -51,8 +62,12 @@ class UserService extends StateNotifier<UserState> {
     super.dispose();
   }
 
-  Future<User> getUser({String? username, int? id, bool? forceUpdate = true}) async {
-    if (currentUser!.id == id){
+  Future<User> getUser({
+    String? username,
+    int? id,
+    bool? forceUpdate = true,
+  }) async {
+    if (currentUser!.id == id) {
       return currentUser!;
     }
     if (id != null) {
@@ -63,59 +78,88 @@ class UserService extends StateNotifier<UserState> {
     throw ArgumentError('Either id or username must be provided');
   }
 
-  Future<User> _getUserByUsername(String username, {bool? forceUpdate = true}) async {
-    if (userBuffer.values.any((u) => u.username != username) && forceUpdate == false){
+  Future<User> _getUserByUsername(
+    String username, {
+    bool? forceUpdate = true,
+  }) async {
+    if (userBuffer.values.any((u) => u.username != username) &&
+        forceUpdate == false) {
       return userBuffer.values.firstWhere((u) => u.username == username);
     }
 
-    MessagePacket message = MessagePacket(type: "user_get", payload: {
-      "username": username,
-    });
-
+    MessagePacket message = MessagePacket(
+      type: "user_get",
+      payload: {"username": username},
+    );
 
     MessagePacket request = await _webSocket.sendRequest(message);
     final userMap = jsonDecode(request.payload["user"]) as Map<String, dynamic>;
-    User user = User.fromJson(userMap);
-    user.x25519PublicKey = userMap["x25519PublicKey"];
-
-    userBuffer[user.id] = user;
-
-    return user;
+    return resolveUser(userMap);
   }
+
   Future<User> _getUserById(int id, {bool? forceUpdate = true}) async {
-    if (userBuffer[id] != null && forceUpdate == false){
+    if (userBuffer[id] != null && forceUpdate == false) {
       return userBuffer[id]!;
     }
 
-    MessagePacket message = MessagePacket(type: "user_get", payload: {
-      "id": id,
-    });
+    MessagePacket message = MessagePacket(
+      type: "user_get",
+      payload: {"id": id},
+    );
 
     MessagePacket request = await _webSocket.sendRequest(message);
     final userMap = jsonDecode(request.payload["user"]) as Map<String, dynamic>;
-    User user = User.fromJson(userMap);
-    user.x25519PublicKey = userMap["x25519PublicKey"];
-
-    userBuffer[user.id] = user;
-
-    return user;
+    return resolveUser(userMap);
   }
 
-  Future<void> changeProfile(String? nickname, String? username, String? description) async {
-
-    MessagePacket message = MessagePacket(type: "user_update_profile", payload: {
-      "nickname": nickname,
-      "username": username,
-      "description": description,
-    });
+  Future<void> changeProfile(
+    String? nickname,
+    String? username,
+    String? description,
+  ) async {
+    MessagePacket message = MessagePacket(
+      type: "user_update_profile",
+      payload: {
+        "nickname": nickname,
+        "username": username,
+        "description": description,
+      },
+    );
 
     MessagePacket request = await _webSocket.sendRequest(message);
-    if (request.payload["success"] == true){
+    if (request.payload["success"] == true) {
       ref.read(currentUserProvider.notifier).state = currentUser!.copyWith(
         username: request.payload["username"],
         nickname: request.payload["nickname"],
         description: request.payload["description"],
       );
+    }
+  }
+
+  User resolveUser(Map<String, dynamic> userMap) {
+    User user = User.fromJson(userMap);
+    user.x25519PublicKey = userMap["x25519PublicKey"];
+
+    userBuffer[user.id] = user;
+    return user;
+  }
+
+  Future<List<User>> searchUser(String query) async {
+    final request = await _webSocket.sendRequest(
+      MessagePacket(type: "search_user", payload: {"username": query}),
+    );
+
+    if (request.payload["success"] != false) {
+      final List<User> users = [];
+
+      //return request.payload["users"];
+      final usersMap = jsonDecode(request.payload["users"]);
+      for (var value in usersMap) {
+        users.add(resolveUser(value));
+      }
+      return users;
+    } else {
+      return [];
     }
   }
 }
