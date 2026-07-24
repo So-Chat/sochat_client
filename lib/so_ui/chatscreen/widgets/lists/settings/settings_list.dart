@@ -11,9 +11,10 @@ class SettingsList extends ConsumerWidget {
   final Color? borderColor;
   final double? borderRadius;
   final EdgeInsets? padding;
+  final bool isExpanded;
 
   const SettingsList({
-    super.key, this.borderColor, this.borderRadius, this.padding
+    super.key, this.borderColor, this.borderRadius, this.padding, this.isExpanded = false
   });
 
   @override
@@ -21,11 +22,11 @@ class SettingsList extends ConsumerWidget {
     final loginController = ref.read(loginControllerProvider.notifier);
 
     return BasePanel(
-      flex: 1,
       borderColor: borderColor,
       borderRadius: borderRadius ?? 10,
       backgroundColor: context.colors.surface,
       padding: padding ?? EdgeInsets.all(8),
+      isExpanded: isExpanded,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

@@ -5,14 +5,12 @@ import 'package:sochat_client/context/menus.dart';
 import 'package:sochat_client/context/context_menu.dart';
 import 'package:sochat_client/context/context_menu_button.dart';
 import 'package:sochat_client/modules/users/user.dart';
+import 'package:sochat_client/so_ui/common/so_button.dart';
 
-class AvatarButton extends ConsumerWidget  {
+class AvatarButton extends ConsumerWidget {
+  User? user;
 
-  User user;
-
-  AvatarButton({
-    super.key, required this.user
-  });
+  AvatarButton({super.key, required this.user});
 
   final GlobalKey _buttonKey = GlobalKey();
 
@@ -21,30 +19,28 @@ class AvatarButton extends ConsumerWidget  {
     return SizedBox(
       width: 40,
       height: 30,
-
-      child: ElevatedButton(
-        key: _buttonKey,
+      child: SoButton(
+        anchorKey: _buttonKey,
+        width: 40,
+        height: 30,
+        color: Colors.white,
+        alignment: Alignment.center,
         onPressed: () {
           final RenderBox box =
-          _buttonKey.currentContext!.findRenderObject() as RenderBox;
-          Offset globalPosition = box.localToGlobal(Offset.zero);
+              _buttonKey.currentContext!.findRenderObject() as RenderBox;
+
+          final Offset globalPosition = box.localToGlobal(Offset.zero);
           final Size size = box.size;
 
           final Offset menuPosition = Offset(
-            globalPosition.dx + size.width + 5 ,
+            globalPosition.dx + size.width + 5,
             globalPosition.dy + size.height + 11,
           );
+          if (user == null) return;
+          List<ContextMenuButton> menuItems = Menus.avatarContext(context, ref, user!);
 
-          List<ContextMenuButton> menuItems = Menus.avatarContext(context, ref, user);
           showContextMenu(context, menuPosition, items: menuItems, ref);
-
         },
-        style: ElevatedButton.styleFrom(
-          alignment: Alignment.center,
-          padding: EdgeInsets.zero,
-          backgroundColor: Colors.white,
-          shape: CircleBorder(),
-        ),
         child: Stack(
           clipBehavior: Clip.none,
           alignment: Alignment.center,
@@ -54,7 +50,7 @@ class AvatarButton extends ConsumerWidget  {
               bottom: -10,
               child: CircleAvatar(
                 radius: 20,
-                child: Text((user.nickname ?? " ")[0]),
+                child: Text((user != null ? (user!.nickname ?? " ") : "  ")[0]),
               ),
             ),
           ],

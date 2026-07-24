@@ -120,31 +120,28 @@ class LoginController extends StateNotifier<LoginControllerState> {
 
   Future<void> logout(BuildContext context) async {
     final oldContainer = containerHolder.value;
+    final newContainer = ProviderContainer();
 
-    oldContainer.read(localStorageServiceProvider.notifier).removeSession();
+    oldContainer
+        .read(localStorageServiceProvider.notifier)
+        .removeSession();
 
-    await Navigator.of(context).pushAndRemoveUntil(
+    containerHolder.value = newContainer;
+
+    if (!context.mounted) return;
+
+    Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (_) => ValueListenableBuilder(
-          valueListenable: containerHolder,
-          builder: (context, container, _) {
-            container.read(notificationsProvider);
-            container.read(webSocketProvider);
-            return UncontrolledProviderScope(
-              container: container,
-              child: const SoChat(),
-            );
-          },
+        builder: (_) => UncontrolledProviderScope(
+          container: newContainer,
+          child: const SoChat(),
         ),
       ),
-          (route) => false,
+      (_) => false,
     );
 
-
-    Future.microtask(() async {
-      (await oldContainer.read(webSocketProvider.future)).disconnect();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       oldContainer.dispose();
-      containerHolder.value = ProviderContainer();
     });
   }
 }

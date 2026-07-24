@@ -4,12 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:sochat_client/context/context_manager.dart';
 
-
 void showContextWindow(
-    BuildContext context,
-    WidgetRef ref,
-    {required Widget child, double height = 700, double width = 466}
-    ) {
+  BuildContext context,
+  WidgetRef ref, {
+  required Widget child,
+  double maxHeight = 700,
+  double maxWidth = 466,
+  double minHeight = 200,
+  double minWidth = 466,
+}) {
   final contextService = ref.read(contextManagerProvider);
 
   final overlay = Overlay.of(context);
@@ -25,7 +28,6 @@ void showContextWindow(
     },
   );
 
-
   final overlayEntry = OverlayEntry(
     builder: (context) {
       return Stack(
@@ -34,9 +36,7 @@ void showContextWindow(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => contextService.hideWindow(),
-              child: Container(
-                color: Colors.black.withValues(alpha: 0.5),
-              ),
+              child: Container(color: Colors.black.withValues(alpha: 0.5)),
             ),
           ),
           Center(
@@ -46,17 +46,19 @@ void showContextWindow(
                 autofocus: true,
                 focusNode: menuFocusNode,
                 child: Container(
-                    width: width,
-                    height: height,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: context.colors.outline,
-                      ),
-                      color: context.colors.surface,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: child
+                  constraints: BoxConstraints(
+                    maxWidth: maxWidth,
+                    maxHeight: maxHeight,
+                    minHeight: minHeight,
+                    minWidth: minWidth,
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: context.colors.outline),
+                    color: context.colors.surface,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: child,
                 ),
               ),
             ),
@@ -67,7 +69,6 @@ void showContextWindow(
   );
 
   contextService.hideWindow();
-
 
   WidgetsBinding.instance.addPostFrameCallback((_) {
     contextService.showWindow(overlay, overlayEntry);

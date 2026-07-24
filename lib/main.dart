@@ -30,8 +30,6 @@ void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
 
-
-
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     await windowManager.ensureInitialized();
     await windowManager.setTitle("SoChat");
@@ -43,6 +41,8 @@ void main() async {
     });
 
     windowManager.addListener(DesktopWindowListener());
+
+    debugPrintRebuildDirtyWidgets = false;
 
     await trayManager.setIcon(
       Platform.isWindows ? 'assets/icon/1024-icon.png' : 'assets/icon/1024-icon.png',
@@ -90,6 +90,7 @@ void main() async {
         container.read(notificationsProvider);
         container.read(webSocketProvider);
         return UncontrolledProviderScope(
+          key: ValueKey(container),
           container: container,
           child: const SoChat(),
         );

@@ -1,4 +1,5 @@
-
+import 'package:flutter/foundation.dart';
+import 'package:sochat_client/modules/calls/call_state.dart';
 import 'package:sochat_client/modules/chats/participant.dart';
 import 'package:sochat_client/modules/chats/sender_key.dart';
 import 'package:sochat_client/modules/messages/message.dart';
@@ -15,7 +16,7 @@ class Chat {
   List<SenderKey> chatKeys = [];
   List<Participant> participants = [];
 
-  bool inCall = false ;
+  CallState callState;
 
   Message? editMessage;
   String? uncompletedContent;
@@ -26,6 +27,7 @@ class Chat {
     required this.type,
     this.editMessage,
     this.uncompletedContent,
+    this.callState = CallState.IDLE
   });
 
   SenderKey? findChatKeyByVersion(int version) {
@@ -34,6 +36,7 @@ class Chat {
     }
     return null;
   }
+
   SenderKey? findLatestChatKey() {
     if (chatKeys.isEmpty) return null;
 
@@ -55,26 +58,27 @@ class Chat {
     Message? lastMessage,
     Message? editMessage,
     String? uncompletedContent,
+    CallState callState = CallState.IDLE,
   }) {
     Chat chat = Chat(
       id: id ?? this.id,
       title: title ?? this.title,
       type: type ?? this.type,
       editMessage: editMessage,
-        uncompletedContent: uncompletedContent
+      uncompletedContent: uncompletedContent,
+      callState: callState,
     );
 
-    chat.participants = participants ?? List<Participant>.from(this.participants);
+    chat.participants =
+        participants ?? List<Participant>.from(this.participants);
     chat.chatKeys = chatKeys ?? this.chatKeys;
 
     return chat;
   }
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other);
+  bool operator ==(Object other) => identical(this, other);
 
   @override
   int get hashCode => id.hashCode;
-
 }

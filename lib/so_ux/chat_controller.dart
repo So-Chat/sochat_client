@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:sochat_client/modules/chats/chat.dart';
 import 'package:sochat_client/modules/chats/chat_service.dart';
+import 'package:sochat_client/modules/chats/chat_type.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/friends/friends_service.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
@@ -10,6 +11,7 @@ import 'package:sochat_client/modules/media/media.dart';
 import 'package:sochat_client/modules/media/media_service.dart';
 import 'package:sochat_client/modules/messages/message.dart';
 import 'package:sochat_client/modules/messages/message_service.dart';
+import 'package:sochat_client/modules/users/user.dart';
 import 'package:sochat_client/modules/users/user_service.dart';
 
 import '../modules/websocket/web_socket_service.dart';
@@ -41,6 +43,8 @@ final chatMessagesProvider = StateProvider<Map<int, List<Message>>>(
 );
 
 final selectedMediaProvider = StateProvider<List<Media>>((ref) => []);
+
+final mediaCache = StateProvider<List<Media>>((ref) => []);
 
 final chatsListProvider = Provider<List<Chat>>((ref) {
   final chats = ref.watch(chatsServiceProvider).chatList;
@@ -228,14 +232,14 @@ class ChatController extends StateNotifier<ChatControllerState> {
   void startEditing(Message message) {
     final selectedChat = ref.read(selectedChatProvider);
     if (selectedChat != null) {
-      updateChat(selectedChat.copyWith(editMessage: message));
+      updateChat(selectedChat.copyWith(editMessage: message, callState: selectedChat.callState));
     }
   }
 
   void stopEditing() {
     final selectedChat = ref.read(selectedChatProvider);
     if (selectedChat != null) {
-      updateChat(selectedChat.copyWith(editMessage: null));
+      updateChat(selectedChat.copyWith(editMessage: null, callState: selectedChat.callState));
     }
   }
 
@@ -250,6 +254,7 @@ class ChatController extends StateNotifier<ChatControllerState> {
       chat.copyWith(
         editMessage: editMessage,
         uncompletedContent: uncompletedContent,
+        callState: chat.callState
       ),
     );
   }
@@ -262,5 +267,23 @@ class ChatController extends StateNotifier<ChatControllerState> {
     if (selectedChat.id == chat.id) {
       ref.read(selectedChatProvider.notifier).state = chat;
     }
+  }
+
+  Future<void> openChatWithUser(User user) async {
+    final chatList = ref.read(chatsServiceProvider).chatList;
+
+    Chat? chat;
+
+    for (final c in chatList) {
+      if (c.type == ChatType.PRIVATE &&
+          c.participants.any((p) => p.user.id == user.id)) {
+        chat = c;
+        break;
+      }
+    }
+
+    chat ??= await _chatService.createChat([user.id], ChatType.PRIVATE, null);
+
+    ref.read(selectedChatProvider.notifier).state = chat;
   }
 }

@@ -1,16 +1,19 @@
+import 'dart:io';
+
+import 'package:flutter_miniaudio/flutter_miniaudio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
-
 
 final mediaCaptureServiceProvider = FutureProvider<CaptureService>((ref) async {
   final service = CaptureService();
 
   service.bootstrapPc = await createPeerConnection({});
 
-  await service.initialize();
+  //await service.testInitialize();
+  await service.initializeDeviceList();
 
   navigator.mediaDevices.ondevicechange = ((event) async {
-    await service.initialize();
+    await service.initializeDeviceList();
   });
 
   ref.onDispose(() {
@@ -25,7 +28,6 @@ final mediaCaptureServiceProvider = FutureProvider<CaptureService>((ref) async {
 });
 
 class CaptureService {
-
   MediaStream? _localStream;
   MediaStream? get localStream => _localStream;
 
@@ -42,92 +44,104 @@ class CaptureService {
 
   RTCPeerConnection? bootstrapPc;
 
-  Future<void> initialize({String? audioId, String? videoId, bool audio = true, bool video = false, bool removeAfter = true}) async {
+  Future<void> initializeLocalStream({
+    String? audioId,
+    String? videoId,
+    bool audio = true,
+    bool video = false,
+  }) async {
     if (_localStream != null) {
       await disposeLocalStream();
     }
-    _localStream = await navigator.mediaDevices.getUserMedia({
-      'audio': audioId != null
-          ? {
-        'deviceId': audioId.toString(),
-        'sourceId': audioId.toString(),
-        'echoCancellation': false,
-        'googEchoCancellation': false,
-        'googEchoCancellation2': false,
-        'googNoiseSuppression': false,
-        'googNoiseSuppression2': false,
-        'googAutoGainControl': false,
-        'googHighpassFilter': false,
-      }
-          : audio,
-      'video': videoId != null
-          ? {
-        'deviceId': videoId.toString(),
-        'sourceId': videoId.toString(),
-      }
-          : video,
-    });
 
-    print(_localStream?.getVideoTracks().length);
+    final constraints = {
+      'audio': {
+              'sourceId': audioId ?? true,
+              'deviceId': audioId ?? true,
+              'echoCancellation': false,
+              'googEchoCancellation': false,
+              'googEchoCancellation2': false,
+              'googNoiseSuppression': false,
+              'googNoiseSuppression2': false,
+              'googAutoGainControl': false,
+              'googHighpassFilter': false,
+      },
+      'video': videoId ?? false,
+    };
 
-    final videoTrack = _localStream?.getVideoTracks();
-    final audioTrack = _localStream?.getAudioTracks();
-    await Future.delayed(Duration(seconds: 2));
-
-    final allDevices = await navigator.mediaDevices.enumerateDevices();
-
-    await configureDevices(allDevices, videoTrack, audioTrack);
-
-    if (removeAfter) {
-      await disposeLocalStream();
-      return;
+    if (audioId != null) {
+      await Helper.selectAudioInput(audioId);
     }
+
+    _localStream = await navigator.mediaDevices.getUserMedia(constraints);
   }
 
-  Future<void> configureDevices(List<MediaDeviceInfo> allDevices, List<MediaStreamTrack>? videoTrack, List<MediaStreamTrack>? audioTrack) async {
-    selectedAudioOutput ??= allDevices.where((d) => d.kind == "audiooutput",).firstOrNull;
+  Future<void> initializeDeviceList() async {
+    final allDevices = await navigator.mediaDevices.enumerateDevices();
+
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      final defaultAudioOutput = MiniaudioContext.getCaptureDevices()
+          .firstWhere((d) => d.isDefault);
+      final defaultVideoOutput = MiniaudioContext.getPlaybackDevices()
+          .firstWhere((d) => d.isDefault);
+
+      await configureDevices(
+        allDevices,
+        desktopDefaultAO: defaultAudioOutput,
+        desktopDefaultVO: defaultVideoOutput,
+      );
+      return;
+    }
+
+    await configureDevices(allDevices);
+  }
+
+  Future<void> configureDevices(
+    List<MediaDeviceInfo> allDevices, {
+    MiniaudioDeviceInfo? desktopDefaultAO,
+    MiniaudioDeviceInfo? desktopDefaultVO,
+  }) async {
+    selectedAudioOutput ??= allDevices
+        .where((d) => d.kind == "audiooutput")
+        .firstOrNull;
 
     for (final d in allDevices) {
       if (d.kind == "audioinput") {
         audioInputDevices.add(d);
-        if (audioTrack != null && audioTrack.isNotEmpty) {
-          final audioSettings = audioTrack.first.getSettings();
-          print(audioSettings);
-          if (d.deviceId == audioSettings["deviceId"] && selectedAudioInput == null) {
-            selectedAudioInput = d;
-          }
+        if (selectedAudioInput == null &&
+            desktopDefaultAO != null &&
+            d.deviceId == desktopDefaultAO.deviceIdString) {
+          selectedAudioInput = d;
         }
       } else if (d.kind == "audiooutput") {
         audioOutputDevices.add(d);
+        if (selectedAudioOutput == null &&
+            desktopDefaultVO != null &&
+            d.deviceId == desktopDefaultVO.deviceIdString) {
+          selectedAudioOutput = d;
+        }
       } else if (d.kind == "videoinput") {
         videoInputDevices.add(d);
-        if (videoTrack != null && videoTrack.isNotEmpty) {
-          final videoSettings = videoTrack.first.getSettings();
-          print(videoSettings);
-          if (d.deviceId == videoSettings["deviceId"] && selectedVideoInput == null) {
-            selectedVideoInput = d;
-          }
-        }
       }
       print("${d.kind} ${d.label} ${d.groupId} ${d.deviceId}");
     }
   }
 
   MediaDeviceInfo? findCurrentDevice(
-      List<MediaDeviceInfo> devices,
-      MediaStreamTrack track,
-      ) {
+    List<MediaDeviceInfo> devices,
+    MediaStreamTrack track,
+  ) {
     final settings = track.getSettings();
 
     return devices.firstWhere(
-          (d) =>
-      d.deviceId == settings["deviceId"] ||
+      (d) =>
+          d.deviceId == settings["deviceId"] ||
           d.groupId == settings["groupId"] ||
           d.label == track.label,
     );
   }
 
-  void setMediaInputs({bool audio = false, bool video = false}){
+  void setMediaInputs({bool audio = false, bool video = false}) {
     if (_localStream != null) {
       _localStream?.getAudioTracks().forEach((t) => t.enabled = audio);
       _localStream?.getVideoTracks().forEach((t) => t.enabled = video);
@@ -140,8 +154,8 @@ class CaptureService {
     audioRenderer.srcObject = stream;
   }
 
-  Future<void> disposeLocalStream() async{
-    for (final track in _localStream?.getTracks() ?? []){
+  Future<void> disposeLocalStream() async {
+    for (final track in _localStream?.getTracks() ?? []) {
       await track.stop();
     }
     await _localStream?.dispose();
@@ -156,5 +170,4 @@ class CaptureService {
     }
     return devices;
   }
-
 }

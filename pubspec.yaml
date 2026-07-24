@@ -49,6 +49,12 @@ dependencies:
   flutter_webrtc: ^1.5.1
 
   crypto: any
+  flutter_resizable_container: ^4.2.0
+
+  flutter_miniaudio:
+    git:
+      url: https://github.com/So-Chat/flutter_miniaudio.git
+
 dev_dependencies:
   flutter_launcher_icons: ^0.14.4
   flutter_test:

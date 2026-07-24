@@ -2,5 +2,8 @@ class TurnCredentials {
   String username;
   String credentials;
 
-  TurnCredentials(this.username, this.credentials);
+  String ip;
+  int port;
+
+  TurnCredentials(this.username, this.credentials, this.ip, this.port);
 }

@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -12,7 +11,6 @@ import 'package:mime/mime.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
 
-
 import 'media.dart';
 
 final mediaServiceProvider = Provider<MediaService>((ref) {
@@ -22,14 +20,16 @@ final mediaServiceProvider = Provider<MediaService>((ref) {
 });
 
 class MediaService {
-
   final KeyService _keyService;
   final AuthService _authService;
 
   MediaService(this._keyService, this._authService);
 
   Future<List<File>> getFiles() async {
-    FilePickerResult? result = await FilePicker.pickFiles(allowMultiple: true, lockParentWindow: true);
+    FilePickerResult? result = await FilePicker.pickFiles(
+      allowMultiple: true,
+      lockParentWindow: true,
+    );
 
     if (result != null) {
       List<File> files = result.paths.map((path) => File(path!)).toList();
@@ -39,10 +39,13 @@ class MediaService {
     }
   }
 
-
-
-  Future<void> downloadMedia(String ip, Media mediaFile, String savePath, {SecretKey? aesKey}) async {
-    final stream = await _openMediaStream(ip, mediaFile, aesKey: aesKey,);
+  Future<void> downloadMedia(
+    String ip,
+    Media mediaFile,
+    String savePath, {
+    SecretKey? aesKey,
+  }) async {
+    final stream = await _openMediaStream(ip, mediaFile, aesKey: aesKey);
 
     final file = File(savePath);
     final sink = file.openWrite();
@@ -52,32 +55,39 @@ class MediaService {
   }
 
   Future<Uint8List>? loadPhotoBytes(
-      Media mediaFile, WidgetRef ref, {
-        SecretKey? aesKey,
-      }) async {
-    final ip = _keyService.servers.entries.toList()[ref.read(selectedServerProvider)].value;
+    Media mediaFile,
+    WidgetRef ref, {
+    SecretKey? aesKey,
+  }) async {
+    return mediaFile.decodedFileBytes ??= () async {
+      print("image reload");
+      final ip = _keyService.servers.entries
+          .toList()[ref.read(selectedServerProvider)]
+          .value;
 
-    final stream = await _openMediaStream(ip, mediaFile, aesKey: aesKey);
+      final stream = await _openMediaStream(ip, mediaFile, aesKey: aesKey);
+      final bytes = await stream.expand((x) => x).toList();
 
-    final bytes = await stream.expand((x) => x).toList();
-    return Uint8List.fromList(bytes);
+      return Uint8List.fromList(bytes);
+    }();
   }
 
   Future<void> deleteMedia(String ip, Media mediaFile) async {
     var url = Uri.parse(('$ip/media?id=${mediaFile.mediaId}').toString());
     var request = await http.delete(
       url,
-      headers: {
-        'Authorization': 'Bearer ${_authService.token!}'
-      },
-
+      headers: {'Authorization': 'Bearer ${_authService.token!}'},
     );
 
     print(request.body);
   }
 
-
-  Future<void> uploadMedia(String ip, Media mediaFile, {String? description, SecretKey? aesKey}) async{
+  Future<void> uploadMedia(
+    String ip,
+    Media mediaFile, {
+    String? description,
+    SecretKey? aesKey,
+  }) async {
     var url = Uri.parse(('$ip/media').toString());
     var request = http.MultipartRequest("POST", url);
 
@@ -125,13 +135,12 @@ class MediaService {
 
     // Generating multipart file, it will make send files in request fragmented
     var multipartFile = http.MultipartFile(
-        fieldName,
-        progressStream,
-        length,
-        filename: mediaFile.file!.uri.pathSegments.last,
-        contentType: mimeType != null ? http.MediaType.parse(mimeType) : null
+      fieldName,
+      progressStream,
+      length,
+      filename: mediaFile.file!.uri.pathSegments.last,
+      contentType: mimeType != null ? http.MediaType.parse(mimeType) : null,
     ); // And adding it to request
-
 
     request.files.add(multipartFile);
 
@@ -156,21 +165,19 @@ class MediaService {
   }
 
   Stream<List<int>> buildProgressStream(
-      Stream<List<int>> source, {
-        required bool isEncrypted,
-        AesCtr? algorithm,
-        List<int>? secretKey,
-        List<int>? nonce,
-        required int uploadedState,
-      }) {
+    Stream<List<int>> source, {
+    required bool isEncrypted,
+    AesCtr? algorithm,
+    List<int>? secretKey,
+    List<int>? nonce,
+    required int uploadedState,
+  }) {
     return source.transform(
       StreamTransformer.fromHandlers(
         handleData: (chunk, sink) {
           uploadedState += chunk.length;
 
-          print(
-            'Uploaded${isEncrypted ? " encrypted" : ""}: $uploadedState',
-          );
+          print('Uploaded${isEncrypted ? " encrypted" : ""}: $uploadedState');
 
           sink.add(chunk);
         },
@@ -179,10 +186,10 @@ class MediaService {
   }
 
   Future<Stream<List<int>>> _openMediaStream(
-      String ip,
-      Media mediaFile, {
-        SecretKey? aesKey,
-      }) async {
+    String ip,
+    Media mediaFile, {
+    SecretKey? aesKey,
+  }) async {
     final url = Uri.parse("$ip/media/${mediaFile.mediaId}");
     final request = http.Request("GET", url);
 
@@ -202,5 +209,4 @@ class MediaService {
 
     return response.stream;
   }
-
 }

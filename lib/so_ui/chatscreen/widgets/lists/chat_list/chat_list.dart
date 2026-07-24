@@ -15,9 +15,10 @@ class ChatList extends ConsumerWidget {
   final Color? borderColor;
   final double? borderRadius;
   final EdgeInsets? padding;
+  final bool isExpanded;
 
   const ChatList({
-    super.key, this.borderColor, this.borderRadius, this.padding
+    super.key, this.borderColor, this.borderRadius, this.padding, this.isExpanded = false
   });
 
   @override
@@ -29,11 +30,11 @@ class ChatList extends ConsumerWidget {
     final sortedChats = ref.watch(sortedChatsProvider);
 
     return BasePanel(
-      flex: 1,
       borderColor: borderColor,
       borderRadius: borderRadius ?? 10,
       padding: EdgeInsets.all(0),
       backgroundColor: context.colors.surface,
+      isExpanded: isExpanded,
       child: Stack(
         clipBehavior: Clip.none,
         children: [

@@ -21,7 +21,7 @@ import 'message.dart';
 
 
 final messageServiceProvider = StateNotifierProvider<MessageService, MessagesState>(
-      (ref) => MessageService(ref.read(webSocketProvider.future), ref.read(keyServiceProvider.notifier), ref.read(chatsServiceProvider.notifier), ref.read(userServiceProvider.notifier), ref.read(mediaServiceProvider),ref.read(notificationsServiceProvider), ref),);
+      (ref) => MessageService(ref.read(webSocketProvider.future), ref.read(keyServiceProvider.notifier), ref.read(chatsServiceProvider.notifier), ref.read(userServiceProvider.notifier), ref.read(mediaServiceProvider),ref.read(notificationsServiceProvider.future), ref),);
 
 
 
@@ -35,13 +35,18 @@ class MessageService extends StateNotifier<MessagesState> {
   final ChatService _chatService;
   final UserService _userService;
   final MediaService _mediaService;
-  final NotificationsService _notificationsService;
+  late final NotificationsService _notificationsService;
 
   Ref ref;
   StreamSubscription? _subscription;
 
-  MessageService(Future<WebSocketService> webSocketFuture, this._keyService, this._chatService, this._userService, this._mediaService, this._notificationsService, this.ref)
+  MessageService(Future<WebSocketService> webSocketFuture, this._keyService, this._chatService, this._userService, this._mediaService, Future<NotificationsService> notificationsFuture, this.ref)
       : super(MessagesState()) {
+        notificationsFuture.then((nF) {
+          _notificationsService = nF;
+        }).catchError((error) {
+          throw Exception("NotificationsService initialization in ChatService fall in error!\nstacktrace: $error");
+        });
     webSocketFuture.then((ws) {
       _webSocket = ws;
       startListen();

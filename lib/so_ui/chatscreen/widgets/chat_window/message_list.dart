@@ -10,9 +10,9 @@ import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
 import 'package:sochat_client/modules/media/media_service.dart';
 import 'package:sochat_client/modules/messages/message.dart';
+import 'package:sochat_client/so_ui/chatscreen/widgets/chat_window/chat_media.dart';
 import 'package:sochat_client/so_ui/common/sub_buttons/downloadable_file.dart';
 import 'package:sochat_client/so_ux/chat_controller.dart';
-
 
 class MessageList extends ConsumerStatefulWidget {
   const MessageList(this.textFieldFocusNode, {super.key});
@@ -21,12 +21,15 @@ class MessageList extends ConsumerStatefulWidget {
   ConsumerState<ConsumerStatefulWidget> createState() => MessageListState();
 }
 
-class MessageListState extends ConsumerState<MessageList>{
-  final ScrollOffsetController _scrollOffsetController = ScrollOffsetController();
-  final ScrollOffsetListener _scrollOffsetListener = ScrollOffsetListener.create();
+class MessageListState extends ConsumerState<MessageList> {
+  final ScrollOffsetController _scrollOffsetController =
+      ScrollOffsetController();
+  final ScrollOffsetListener _scrollOffsetListener =
+      ScrollOffsetListener.create();
 
   final ItemScrollController _itemScrollController = ItemScrollController();
-  final ItemPositionsListener _itemPositionsListener = ItemPositionsListener.create();
+  final ItemPositionsListener _itemPositionsListener =
+      ItemPositionsListener.create();
 
   @override
   void initState() {
@@ -41,8 +44,8 @@ class MessageListState extends ConsumerState<MessageList>{
     _itemPositionsListener.itemPositions.addListener(() {
       final selectedChat = ref.read(selectedChatProvider);
 
-      if (isAtBottom(ref.read(chatMessagesProvider)[selectedChat!.id]!)){
-          chatController.loadRecentMessages();
+      if (isAtBottom(ref.read(chatMessagesProvider)[selectedChat!.id]!)) {
+        chatController.loadRecentMessages();
       }
 
       final messages = ref.read(chatMessagesProvider)[selectedChat.id]!;
@@ -55,16 +58,17 @@ class MessageListState extends ConsumerState<MessageList>{
         if (index >= 0 && index < messages.length) {
           final message = messages[index];
 
-          final myParticipant = selectedChat.participants
-              .firstWhere((p) => p.user.id == currentUser!.id);
+          final myParticipant = selectedChat.participants.firstWhere(
+            (p) => p.user.id == currentUser!.id,
+          );
 
-          if (message.id > myParticipant.lastReadMessageId && message.sender.id != myParticipant.user.id) {
+          if (message.id > myParticipant.lastReadMessageId &&
+              message.sender.id != myParticipant.user.id) {
             chatController.setLastReadMessage(message.id, message.chatId);
           }
         }
       }
     });
-
   }
 
   bool isAtBottom(List<Message> messages) {
@@ -79,8 +83,6 @@ class MessageListState extends ConsumerState<MessageList>{
 
     return maxVisibleIndex >= messages.length - 1;
   }
-
-
 
   @override
   void dispose() {
@@ -98,131 +100,115 @@ class MessageListState extends ConsumerState<MessageList>{
 
     messageMap[selectedChat!.id] ??= [];
     return Expanded(
-        child: SelectionArea(
-          contextMenuBuilder: (context, editableTextState) {
-            return const SizedBox.shrink();
+      child: SelectionArea(
+        contextMenuBuilder: (context, editableTextState) {
+          return const SizedBox.shrink();
+        },
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () {
+            widget.textFieldFocusNode.requestFocus();
           },
-          child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: () {
-                widget.textFieldFocusNode.requestFocus();
-              },
 
-              child: ScrollablePositionedList.builder(
-                scrollOffsetController: _scrollOffsetController,
-                scrollOffsetListener: _scrollOffsetListener,
-                itemPositionsListener: _itemPositionsListener,
-                itemScrollController: _itemScrollController,
-                reverse: true, itemCount: messageMap[selectedChat.id]!.length, itemBuilder: (context, index) {
+          child: ScrollablePositionedList.builder(
+            scrollOffsetController: _scrollOffsetController,
+            scrollOffsetListener: _scrollOffsetListener,
+            itemPositionsListener: _itemPositionsListener,
+            itemScrollController: _itemScrollController,
+            reverse: true,
+            itemCount: messageMap[selectedChat.id]!.length,
+            itemBuilder: (context, index) {
               final message = messageMap[selectedChat.id]![index];
 
               return GestureDetector(
-                onSecondaryTapDown: (details) { showContextMenu(context, details.globalPosition, ref, items: Menus.messageContextMenu(context, ref, message)); },
+                onSecondaryTapDown: (details) {
+                  showContextMenu(
+                    context,
+                    details.globalPosition,
+                    ref,
+                    items: Menus.messageContextMenu(context, ref, message),
+                  );
+                },
                 child: Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: Colors.transparent,
-                          ),
+                  padding: const EdgeInsets.all(10.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.transparent),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      spacing: 8,
+                      children: [
+                        CircleAvatar(
+                          radius: 19,
+                          child: Text(message.sender.username[0]),
                         ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        spacing: 8,
-                        children: [
-                          CircleAvatar(
-                            radius: 19,
-                            child: Text(message.sender.username[0]),
-                          ),
-                          Expanded(
-                            child: Column(
-                              spacing: 4,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  spacing: 4,
-                                  children: [
+                        Expanded(
+                          child: Column(
+                            spacing: 4,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                spacing: 4,
+                                children: [
+                                  Text(
+                                    message.sender.nickname,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
+                                  ),
+                                  Text(
+                                    Utils.buildDateString(message.timestamp),
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.labelSmall,
+                                  ),
+                                  if (message.sender.id == currentUser!.id)
                                     Text(
-                                      message.sender.nickname,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: Theme.of(context).textTheme.titleMedium,
+                                      selectedChat.participants.any(
+                                            (p) =>
+                                                p.lastReadMessageId >=
+                                                    message.id &&
+                                                p.user.id != currentUser.id,
+                                          )
+                                          ? "Read"
+                                          : "Unread",
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.labelSmall,
                                     ),
-                                    Text(
-                                      Utils.buildDateString(message.timestamp),
-                                      style: Theme.of(context).textTheme.labelSmall,
-                                    ),
-                                    if (message.sender.id == currentUser!.id)
-                                    Text(selectedChat.participants.any((p) => p.lastReadMessageId >= message.id && p.user.id != currentUser.id) ? "Read" : "Unread", style: Theme.of(context).textTheme.labelSmall,),
-                                  ],
-                                ),
-                                if (!["", " "].any((c) => c == message.content)) Text(
+                                ],
+                              ),
+                              if (!["", " "].any((c) => c == message.content))
+                                Text(
                                   message.content,
                                   style: Theme.of(context).textTheme.bodyMedium,
                                 ),
 
-                                if (message.mediaFiles != null && message.mediaFiles!.isNotEmpty)
-                                  ListView.builder(
-                                    shrinkWrap: true,
-                                    physics: const NeverScrollableScrollPhysics(),
-                                    itemCount: message.mediaFiles!.length,
-                                    itemBuilder: (context, index) {
-                                      
-                                      final file = message.mediaFiles![index];
-                                      if (file.mimeType!.contains("image")) {
-                                        return FutureBuilder<Uint8List>(
-                                          future: mediaService.loadPhotoBytes(
-                                            file, ref, aesKey: ref.read(selectedChatProvider.notifier).state?.chatKeys.last.key
-                                          ),
-                                          builder: (context, snapshot) {
-
-                                            if (snapshot.connectionState == ConnectionState.waiting) {
-                                              return const SizedBox(
-                                                width: 160,
-                                                height: 160,
-                                                child: Center(child: CircularProgressIndicator()),
-                                              );
-                                            }
-
-                                            if (snapshot.hasError) {
-                                              return const Icon(Icons.broken_image);
-                                            }
-
-                                            if (!snapshot.hasData || snapshot.data == null) {
-                                              return const SizedBox(
-                                                width: 160,
-                                                height: 160,
-                                              );
-                                            }
-
-                                            return Image.memory(
-                                              snapshot.data!,
-                                              alignment: Alignment.topLeft,
-                                              width: 160,
-                                              height: 160,
-                                              fit: BoxFit.scaleDown
-                                            );
-                                          },
-                                        );
-                                      }
-                                      else {
-                                        return DownloadableFile(file);
-                                      }
-
-                                    },
-                                  )
-
-                              ],
-                            ),
+                              if (message.mediaFiles != null &&
+                                  message.mediaFiles!.isNotEmpty)
+                                ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: message.mediaFiles!.length,
+                                  itemBuilder: (context, index) {
+                                    final file = message.mediaFiles![index];
+                                    return ChatMedia(file, ref);
+                                  },
+                                ),
+                            ],
                           ),
-                        ],
-                      )
+                        ),
+                      ],
                     ),
+                  ),
                 ),
               );
-            }
-            ),
+            },
           ),
         ),
+      ),
     );
   }
 }

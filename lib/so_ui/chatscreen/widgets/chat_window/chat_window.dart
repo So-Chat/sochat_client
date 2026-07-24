@@ -20,6 +20,7 @@ class ChatWindow extends ConsumerStatefulWidget {
     this.borderRadius = 10,
     this.messageInputPadding = const EdgeInsets.all(0),
     this.borderColor,
+    this.isExpanded = false
   });
 
   final Color? borderColor;
@@ -27,6 +28,7 @@ class ChatWindow extends ConsumerStatefulWidget {
   final double? topBorderRadius;
   final double? borderRadius;
   final EdgeInsets? messageInputPadding;
+  final bool isExpanded;
 
   @override
   ConsumerState<ConsumerStatefulWidget> createState() => ChatWindowState();
@@ -118,10 +120,10 @@ class ChatWindowState extends ConsumerState<ChatWindow>{
     );
 
     return BasePanel(
-      flex: 2,
       borderRadius: widget.borderRadius!,
       borderColor: widget.borderColor,
       backgroundColor: widget.backgroundColor ?? context.colors.foreground,
+      isExpanded: widget.isExpanded,
       child: Focus(
         focusNode: chatFocusNode,
         child: selectedChat != null

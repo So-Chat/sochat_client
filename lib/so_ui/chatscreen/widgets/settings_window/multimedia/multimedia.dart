@@ -34,7 +34,7 @@ class _MultimediaSettingsState extends ConsumerState<MultimediaSettings> {
 
   void futureInit() async {
     mediaCaptureService = await ref.read(mediaCaptureServiceProvider.future);
-    await mediaCaptureService.initialize(audioId: mediaCaptureService.selectedAudioInput!.deviceId, removeAfter: false);
+    //await mediaCaptureService.initializeDeviceList();
 
     if (!mounted) return;
 

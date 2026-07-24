@@ -12,9 +12,10 @@ class FriendList extends ConsumerWidget {
   final Color? borderColor;
   final double? borderRadius;
   final EdgeInsets? padding;
+  final bool isExpanded;
 
   const FriendList({
-    super.key, this.borderColor, this.borderRadius, this.padding
+    super.key, this.borderColor, this.borderRadius, this.padding, this.isExpanded = false
   });
 
   @override
@@ -25,11 +26,11 @@ class FriendList extends ConsumerWidget {
     final outgoingRelativesList = ref.watch(outgoingRequestsProvider);
 
     return BasePanel(
-      flex: 1,
       borderColor: borderColor,
       borderRadius: borderRadius ?? 10,
       backgroundColor: context.colors.surface,
       padding: padding ?? EdgeInsets.all(8),
+      isExpanded: isExpanded,
       child: ListView(
         children: [
           ...friendRelativesList.map((e) => FriendItem(

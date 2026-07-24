@@ -43,9 +43,11 @@ void showContextMenu(
 
   final overlay = Overlay.of(context);
 
-  for (var i in items) {
-    i.removeAction = () => contextService.hideMenu();
-  }
+  items = items.map(
+    (i) => i.copyWith(
+      removeAction: () => contextService.hideMenu(),
+    ),
+  ).toList();
 
   final FocusNode menuFocusNode = FocusNode();
 

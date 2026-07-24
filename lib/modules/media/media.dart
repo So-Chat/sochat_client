@@ -17,11 +17,24 @@ class Media {
 
   File? file;
   Uint8List? fileBytes;
+  Future<Uint8List>? decodedFileBytes;
 
   bool isLoaded = false;
 
-
-  Media({this.mediaId, this.senderId, this.mimeType, this.fileName, this.fileSize, this.width, this.height, this.length, this.file, this.fileBytes, this.nonce});
+  Media({
+    this.mediaId,
+    this.senderId,
+    this.mimeType,
+    this.fileName,
+    this.fileSize,
+    this.width,
+    this.height,
+    this.length,
+    this.file,
+    this.fileBytes,
+    this.nonce,
+    this.decodedFileBytes,
+  });
 
   factory Media.fromJson(Map<String, dynamic> json) {
     return Media(

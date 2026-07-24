@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:sochat_client/context/menus.dart';
+import 'package:sochat_client/modules/calls/call_state.dart';
 import 'package:sochat_client/modules/chats/chat_type.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sochat_client/modules/common/auth_service.dart';
+import 'package:sochat_client/modules/friends/friends_service.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
 import 'package:sochat_client/so_ux/chat_controller.dart';
 
 class ChatTop extends ConsumerWidget {
-
   final double borderRadius;
 
   const ChatTop({super.key, this.borderRadius = 10});
@@ -15,8 +17,17 @@ class ChatTop extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final chatController = ref.read(chatControllerProvider.notifier);
+
     final chatList = ref.watch(chatsListProvider);
+
     final selectedChat = ref.watch(selectedChatProvider);
+
+    final friendsList = ref.watch(friendsListProvider);
+
+    final selectedChatFromList = chatList.firstWhere((chat) => chat.id == selectedChat!.id);
+
+    final otherUser = selectedChatFromList.participants.firstWhere((participant) => participant.user.id != ref.read(currentUserProvider)!.id);
+    final bool isFriends = friendsList.any((u) => u.id == otherUser.user.id);
 
     return Container(
       padding: EdgeInsets.zero,
@@ -25,63 +36,117 @@ class ChatTop extends ConsumerWidget {
           top: BorderSide.none,
           left: BorderSide.none,
           right: BorderSide.none,
-          bottom: BorderSide(
-            color: context.colors.outline,
-            width: 1,
-          ),
+          bottom: BorderSide(color: context.colors.outline, width: 1),
         ),
         color: context.colors.foreground,
         borderRadius: BorderRadius.vertical(top: Radius.circular(borderRadius)),
       ),
 
       child: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.all(4.0),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
               spacing: 10,
               children: [
-                SoButton(height: 30, width: 30,  color: Colors.transparent, onPressed: () {ref.read(selectedChatProvider.notifier).state = null;},
-                  child: Icon(Icons.arrow_back, color: context.colors.textPrimary, size: 25),),
-                CircleAvatar(radius: 20, child: Text(chatList.firstWhere((chat) => chat.id == selectedChat!.id).title[0])),
-                Text(chatList.firstWhere((chat) => chat.id == selectedChat!.id).title),
-                chatList.firstWhere((chat) => chat.id == selectedChat!.id).type == ChatType.GROUP_SECURE ? Icon(Icons.enhanced_encryption, color: context.colors.textSecondary, size: 20,)
-                    : chatList.firstWhere((chat) => chat.id == selectedChat!.id).type == ChatType.GROUP_INSECURE ? Icon(Icons.no_encryption, color: context.colors.textSecondary, size: 20) : Container()
+                SoButton(
+                  height: 30,
+                  width: 30,
+                  color: Colors.transparent,
+                  onPressed: () {
+                    ref.read(selectedChatProvider.notifier).state = null;
+                  },
+                  child: Icon(
+                    Icons.arrow_back,
+                    color: context.colors.textPrimary,
+                    size: 25,
+                  ),
+                ),
+                SoButton(
+                  onPressed: selectedChatFromList.type == ChatType.PRIVATE
+                    ? Menus.userProfile(context, ref, otherUser.user)
+                    : Menus.openProfile(context, ref, selectedChatFromList),
+                  child: Padding(padding: EdgeInsets.symmetric(horizontal: 5), child: Row(
+                    spacing: 10,
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      child: Text(
+                        selectedChatFromList.title[0],
+                      ),
+                    ),
+                    Text(
+                      selectedChatFromList.title,
+                    ),
+                    selectedChatFromList.type == ChatType.GROUP_SECURE
+                        ? Icon(
+                            Icons.enhanced_encryption,
+                            color: context.colors.textSecondary,
+                            size: 20,
+                          )
+                        : selectedChatFromList.type ==
+                              ChatType.GROUP_INSECURE
+                        ? Icon(
+                            Icons.no_encryption,
+                            color: context.colors.textSecondary,
+                            size: 20,
+                          )
+                        : Container(),
+                  ],
+                ))
+                ),
               ],
             ),
 
             Row(
               spacing: 10,
               children: [
-                selectedChat?.type == ChatType.GROUP_INSECURE || selectedChat?.type == ChatType.GROUP_SECURE  ?
-                SoButton(
-                  height: 40,
-                  width: 40,
-                  onPressed: Menus.addParticipantDialog(context, ref),
-                  color: context.colors.foreground,
-                  child: Icon(Icons.person_add)) : Container(),
-                SoButton(
-                  height: 40,
-                  width: 40,
-                  onPressed: (){
-                    {
-                      ref.read(isInCallProvider.notifier).state = true;
-                    }},
-                  color: selectedChat!.inCall ? context.colors.positive: context.colors.foreground,
-                  child: Icon(Icons.call),),
-                SoButton(
-                  height: 40,
-                  width: 40,
-                  onPressed: (){
-                    {
-                      ref.read(selectedChatProvider.notifier).state = null;
-                    }},
-                  color: context.colors.foreground,
-                  child: Icon(Icons.video_call),
-                ),
+                selectedChat?.type == ChatType.GROUP_INSECURE ||
+                        selectedChat?.type == ChatType.GROUP_SECURE
+                    ? SoButton(
+                        height: 40,
+                        width: 40,
+                        onPressed: Menus.addParticipantDialog(context, ref),
+                        color: context.colors.foreground,
+                        child: Icon(Icons.person_add),
+                      )
+                    : Container(),
+                    if (selectedChatFromList.type == ChatType.PRIVATE && isFriends) Row(
+                      children: [
+                        SoButton(
+                          height: 40,
+                          width: 40,
+                          onPressed: () {
+                            {
+                              if (isFriends) {
+                                ref.read(isInCallProvider.notifier).state = true;
+                              }
+                            }
+                          },
+                          color: selectedChat!.callState == CallState.INCOMING
+                              ? context.colors.positive
+                              : selectedChat.callState == CallState.IN_CALL ? context.colors.primary
+                              : selectedChat.callState == CallState.CALLING ? context.colors.caution
+                              : context.colors.foreground,
+                          child: Icon(Icons.call),
+                        ),
+                        SoButton(
+                          height: 40,
+                          width: 40,
+                          onPressed: () {
+                            {
+                              ref.read(selectedChatProvider.notifier).state = null;
+                            }
+                          },
+                          color: context.colors.foreground,
+                          child: Icon(Icons.video_call),
+                        ),
+                      ],
+                    )
+
               ],
-            )
+            ),
           ],
         ),
       ),

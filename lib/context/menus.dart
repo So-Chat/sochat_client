@@ -15,6 +15,7 @@ import 'package:sochat_client/context/context_manager.dart';
 import 'package:sochat_client/modules/friends/friends_service.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
 import 'package:sochat_client/modules/users/user_service.dart';
+import 'package:sochat_client/so_ui/chatscreen/chat_screen.dart';
 import 'package:sochat_client/so_ui/chatscreen/widgets/lists/friend_list/friend_item.dart';
 import 'package:sochat_client/so_ui/chatscreen/widgets/search/search_window.dart';
 import 'package:sochat_client/so_ui/common/input.dart';
@@ -25,6 +26,7 @@ import 'package:sochat_client/so_ui/common/so_exception.dart';
 import 'package:sochat_client/so_ui/loginscreen/widgets/settings_button.dart';
 import 'package:sochat_client/so_ux/chat_controller.dart';
 import 'package:sochat_client/so_ux/login_controller.dart';
+import 'package:sochat_client/so_ux/settings_controller.dart';
 
 class Menus {
   static VoidCallback openSearchWindow(BuildContext context, WidgetRef ref) {
@@ -32,8 +34,8 @@ class Menus {
       showContextWindow(
         context,
         ref,
-        height: 500,
-        width: 720,
+        maxHeight: 500,
+        maxWidth: 720,
         child: SearchWindow(),
       );
     };
@@ -83,13 +85,114 @@ class Menus {
   static VoidCallback userProfile(
     BuildContext context,
     WidgetRef ref,
-    User user,
-  ) {
+    User user, {
+    bool workingButtons = true,
+  }) {
+    final friendshipService = ref.read(friendsServiceProvider.notifier);
+    final friendships = ref.read(friendsServiceProvider).friendships;
+
+    final currentUser = ref.watch(currentUserProvider);
+
+    final friendship = friendships[user.username];
+    final contextManager = ref.read(contextManagerProvider);
+    Widget button = Container();
+
+    if (friendship == null) {
+      button = SoButton(
+        borderColor: context.colors.outline,
+        alignment: Alignment.centerLeft,
+        height: 50,
+        width: double.infinity,
+        child: const Padding(
+          padding: EdgeInsets.all(8),
+          child: Row(spacing: 10, children: [Icon(Icons.add), Text("Add friend")]),
+        ),
+        onPressed: () {
+          if (workingButtons) {
+            friendshipService.sendFriendRequest(user.username);
+            contextManager.hideWindow();
+          }
+        },
+      );
+    } else {
+      switch (friendship.status) {
+        case FriendshipStatus.PENDING:
+          if (friendship.isIncoming(currentUser!.id)) {
+            button = SoButton(
+              borderColor: context.colors.outline,
+              alignment: Alignment.centerLeft,
+              height: 50,
+              width: double.infinity,
+              child: const Padding(
+                padding: EdgeInsets.all(8),
+                child: Row(
+                  spacing: 10,
+                  children: [Icon(Icons.close), Text("Decline request")],
+                ),
+              ),
+              onPressed: () {
+                if (workingButtons) {
+                  friendshipService.removeFriend(user.username);
+                  contextManager.hideWindow();
+                }
+              },
+            );
+          }
+
+          button = SoButton(
+            borderColor: context.colors.outline,
+            alignment: Alignment.centerLeft,
+            height: 50,
+            width: double.infinity,
+            child: const Padding(
+              padding: EdgeInsets.all(8),
+              child: Row(
+                spacing: 10,
+                children: [Icon(Icons.remove), Text("Cancel request")],
+              ),
+            ),
+            onPressed: () {
+              if (workingButtons) {
+                friendshipService.removeFriend(user.username);
+                contextManager.hideWindow();
+              }
+            },
+          );
+          break;
+
+        case FriendshipStatus.ACCEPTED:
+          button = SoButton(
+            borderColor: context.colors.outline,
+            alignment: Alignment.centerLeft,
+            height: 50,
+            width: double.infinity,
+            child: const Padding(
+              padding: EdgeInsets.all(8),
+              child: Row(
+                spacing: 10,
+                children: [Icon(Icons.person_remove), Text("Remove friend")],
+              ),
+            ),
+            onPressed: () {
+              if (workingButtons) {
+                friendshipService.removeFriend(user.username);
+                contextManager.hideWindow();
+              }
+            },
+          );
+          break;
+        case FriendshipStatus.BLOCKED:
+          // TODO: Implement when figure out with blocked state
+          button = Container();
+      }
+    }
+
     return showProfileWindow(
       context,
       ref,
-      title: user.username,
-      avatarLetter: user.username[0],
+      title: user.nickname,
+      avatarLetter: user.nickname[0],
+      label: user.username,
       child: Padding(
         padding: EdgeInsetsGeometry.all(8),
         child: user.description != null
@@ -102,6 +205,20 @@ class Menus {
                 style: Theme.of(context).textTheme.labelMedium,
               ),
       ),
+      buttons: Column(children: [button]),
+      upperButton: friendship != null
+          ? SoButton(
+              height: 50,
+              width: 50,
+              child: Icon(Icons.message),
+              onPressed: () {
+                ref
+                    .read(chatControllerProvider.notifier)
+                    .openChatWithUser(user);
+                contextManager.hideWindow();
+              },
+            )
+          : Container(),
     );
   }
 
@@ -117,6 +234,7 @@ class Menus {
       avatarLetter: chat.title[0],
 
       child: ListView(
+        shrinkWrap: true,
         padding: const EdgeInsets.all(8.0),
         children: [
           ...chat.participants.map(
@@ -132,18 +250,23 @@ class Menus {
     WidgetRef ref, {
     required String title,
     required String avatarLetter,
+    String label = "",
     Widget? child,
+    Widget? buttons,
+    Widget? upperButton,
   }) {
     child ??= Container();
     return () {
       showContextWindow(
         context,
         ref,
-        height: 600,
-        width: 400,
+        minWidth: 400,
+        maxWidth: 400,
+        minHeight: 400,
         child: Container(
           padding: EdgeInsets.all(8),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             spacing: 16,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -160,30 +283,44 @@ class Menus {
                 child: Padding(
                   padding: const EdgeInsets.all(4.0),
                   child: Row(
-                    spacing: 10,
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      CircleAvatar(radius: 30, child: Text(avatarLetter)),
-                      Text(title),
+                      Row(
+                        spacing: 10,
+                        children: [
+                          CircleAvatar(radius: 30, child: Text(avatarLetter)),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(title),
+                              if (label != "" && label != title) Text(label, style: Theme.of(context).textTheme.labelSmall)
+                            ],
+                          )
+
+                        ],
+                      ),
+                      upperButton ?? Container(),
                     ],
                   ),
                 ),
               ),
-              Expanded(
-                flex: 2,
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    border: Border.fromBorderSide(
-                      BorderSide(color: context.colors.outline, width: 1),
+              Flexible(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: 200),
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      border: Border.fromBorderSide(
+                        BorderSide(color: context.colors.outline, width: 1),
+                      ),
+                      color: context.colors.foreground,
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    color: context.colors.foreground,
-                    borderRadius: BorderRadius.circular(10),
+                    child: child,
                   ),
-                  child: child,
                 ),
               ),
-              Expanded(child: Column(children: [])),
+              buttons ?? Container(),
             ],
           ),
         ),
@@ -210,7 +347,7 @@ class Menus {
       showContextWindow(
         context,
         ref,
-        height: 220,
+        maxHeight: 220,
 
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -277,7 +414,7 @@ class Menus {
       showContextWindow(
         context,
         ref,
-        height: 200,
+        maxHeight: 200,
 
         child: Column(
           spacing: 8,
@@ -339,7 +476,7 @@ class Menus {
       showContextWindow(
         context,
         ref,
-        height: 200,
+        maxHeight: 200,
 
         child: Column(
           spacing: 8,
@@ -397,8 +534,10 @@ class Menus {
       showContextWindow(
         context,
         ref,
-        height: 500,
-        width: 450,
+        minWidth: 450,
+        minHeight: 200,
+        maxHeight: 500,
+        maxWidth: 450,
 
         child: Column(
           spacing: 8,
@@ -584,8 +723,8 @@ class Menus {
       showContextWindow(
         context,
         ref,
-        height: 500,
-        width: 450,
+        maxHeight: 500,
+        maxWidth: 450,
 
         child: Column(
           spacing: 8,
@@ -889,7 +1028,10 @@ class Menus {
       ContextMenuButton(
         text: "${user.nickname} (${user.username})",
         leading: CircleAvatar(radius: 20, child: Text(user.nickname[0])),
-        onTap: () {},
+        onTap: () {
+          ref.read(activeList.notifier).state = 2;
+          ref.read(selectedSettingsOptionProvider.notifier).state = 1;
+        },
         description: user.getDesc(),
       ),
       ContextMenuButton(

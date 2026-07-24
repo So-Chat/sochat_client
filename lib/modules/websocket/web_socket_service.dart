@@ -108,7 +108,7 @@ class WebSocketService{
         _ref.read(inAppNotificationsManagerProvider.notifier).addUpdate(
           SoNotification(
             icon: Icons.error_outline,
-            title: "Unhandled request Error",
+            title: "Error",
             content: messagg.payload["server_message"],
           ),
         );

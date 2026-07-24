@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sochat_client/context/menus.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/users/user.dart';
@@ -141,7 +142,13 @@ class AccountState extends ConsumerState<Account> {
                             ),
                           ],
                         ),
-                        SoButton(height: 35, width: 300, color: context.colors.primary, onPressed: () {}, child: Text("Preview Profile", style:
+                        SoButton(height: 35, width: 300, color: context.colors.primary, onPressed: () {
+                          User user = User(id: 0, username: usernameController.text,
+                            nickname: nicknameController.text,
+                            x25519PublicKey: currentUser!.x25519PublicKey,
+                            description: descriptionController.text);
+                          Menus.userProfile(context, ref, user, workingButtons: false)();
+                        }, child: Text("Preview Profile", style:
                         Theme.of(context).textTheme.bodyMedium!.copyWith(
                           color: Colors.white,
                         ))),

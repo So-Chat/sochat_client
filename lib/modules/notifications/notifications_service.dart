@@ -1,10 +1,10 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final notificationsServiceProvider = Provider<NotificationsService>((ref) {
-  final asyncPlugin = ref.watch(notificationsProvider);
+final notificationsServiceProvider =FutureProvider<NotificationsService>((ref) async {
+  final notifications = await ref.watch(notificationsProvider.future);
 
-  return asyncPlugin.whenData((plugin) => NotificationsService(plugin)).requireValue;
+  return NotificationsService(notifications);
 });
 
 final notificationsProvider = FutureProvider<FlutterLocalNotificationsPlugin>((ref) async {

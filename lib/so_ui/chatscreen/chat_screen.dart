@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_resizable_container/flutter_resizable_container.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:sochat_client/context/menus.dart';
@@ -31,12 +32,12 @@ class ChatScreen extends ConsumerStatefulWidget {
 final activeList = StateProvider<int>((ref) => 0);
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
-
   double width = 0;
+
+  final resizableController = ResizableController();
 
   @override
   void initState() {
-
     final chatController = ref.read(chatControllerProvider.notifier);
     chatController.getChatList();
     chatController.getFriendsList();
@@ -60,19 +61,38 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       return Scaffold(
         backgroundColor: context.colors.surface,
         body: Padding(
-          padding: const EdgeInsets.fromLTRB(0,0,0,0),
+          padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
           child: Column(
             spacing: 8,
             children: [
-              if (selectedChat == null) _buildTopBar(currentUser, padding: EdgeInsets.fromLTRB(8,8,8,0)),
-                width >= 600
-                    ? Expanded(child: _buildFullLayout(active,
-                    backgroundColor: context.colors.surface,
-                      borderRadius: 0, borderColor: Colors.transparent, chatTopBorderRadius: 0, messageInputPadding: EdgeInsets.all(8), listPadding: EdgeInsets.all(0)))
-
-                    : _buildMiniLayout(active, activeSettings, selectedChat,
-                    backgroundColor: context.colors.surface,
-                      borderRadius: 0, borderColor: Colors.transparent, chatTopBorderRadius: 0, messageInputPadding: EdgeInsets.all(8), listPadding: EdgeInsets.all(0)),
+              if (selectedChat == null)
+                _buildTopBar(
+                  currentUser,
+                  padding: EdgeInsets.fromLTRB(8, 8, 8, 0),
+                ),
+              width >= 600
+                  ? Expanded(
+                      child: _buildFullLayout(
+                        active,
+                        backgroundColor: context.colors.surface,
+                        borderRadius: 0,
+                        borderColor: Colors.transparent,
+                        chatTopBorderRadius: 0,
+                        messageInputPadding: EdgeInsets.all(8),
+                        listPadding: EdgeInsets.all(0),
+                      ),
+                    )
+                  : _buildMiniLayout(
+                      active,
+                      activeSettings,
+                      selectedChat,
+                      backgroundColor: context.colors.surface,
+                      borderRadius: 0,
+                      borderColor: Colors.transparent,
+                      chatTopBorderRadius: 0,
+                      messageInputPadding: EdgeInsets.all(8),
+                      listPadding: EdgeInsets.all(0),
+                    ),
             ],
           ),
         ),
@@ -86,10 +106,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           children: [
             _buildTopBar(currentUser),
             width >= 600
-                  ? Expanded(child: _buildFullLayout(active, backgroundColor: context.colors.foreground,
-                    borderRadius: 10, chatTopBorderRadius: 10, messageInputPadding: EdgeInsets.all(0)))
-                  : _buildMiniLayout(active, activeSettings, selectedChat, backgroundColor: context.colors.foreground,
-                    borderRadius: 10, chatTopBorderRadius: 10, messageInputPadding: EdgeInsets.all(0)),
+                ? Expanded(
+                    child: _buildFullLayout(
+                      active,
+                      backgroundColor: context.colors.foreground,
+                      borderRadius: 10,
+                      chatTopBorderRadius: 10,
+                      messageInputPadding: EdgeInsets.all(0),
+                    ),
+                  )
+                : _buildMiniLayout(
+                    active,
+                    activeSettings,
+                    selectedChat,
+                    backgroundColor: context.colors.foreground,
+                    borderRadius: 10,
+                    chatTopBorderRadius: 10,
+                    messageInputPadding: EdgeInsets.all(0),
+                  ),
           ],
         ),
       ),
@@ -104,96 +138,214 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           Row(
             spacing: 8,
             children: [
-              if (!(Platform.isAndroid || Platform.isFuchsia || Platform.isIOS || width <= 600)) Row(
-                spacing: 8,
-                children: [
-                  TopButton(Icons.sms, onPressed: () {
-                    ref.read(activeList.notifier).state = 0;
-                  }),
-                  TopButton(Icons.person, onPressed: () {
-                    ref.read(activeList.notifier).state = 1;
-                  }),
-                  TopButton(Icons.settings, onPressed: () {
-                    ref.read(activeList.notifier).state = 2;
-                    ref.read(selectedSettingsOptionProvider.notifier).state = 0;
-                  }),
-                ],
-              ),
-      
+              if (!(Platform.isAndroid ||
+                  Platform.isFuchsia ||
+                  Platform.isIOS ||
+                  width <= 600))
+                Row(
+                  spacing: 8,
+                  children: [
+                    TopButton(
+                      Icons.sms,
+                      onPressed: () {
+                        ref.read(activeList.notifier).state = 0;
+                      },
+                    ),
+                    TopButton(
+                      Icons.person,
+                      onPressed: () {
+                        ref.read(activeList.notifier).state = 1;
+                      },
+                    ),
+                    TopButton(
+                      Icons.settings,
+                      onPressed: () {
+                        ref.read(activeList.notifier).state = 2;
+                        ref
+                                .read(selectedSettingsOptionProvider.notifier)
+                                .state =
+                            0;
+                      },
+                    ),
+                  ],
+                ),
+
               Expanded(
                 flex: 4,
                 child: SearchButton(
                   onPressed: Menus.openSearchWindow(context, ref),
                 ),
               ),
-      
+
               Row(
                 spacing: 8,
                 children: [
                   TopButton(Icons.inbox_rounded),
-                  AvatarButton(user: currentUser!),
+                  AvatarButton(user: currentUser),
                 ],
               ),
             ],
           ),
-        if (Platform.isAndroid || Platform.isFuchsia || Platform.isIOS || width <= 600) Padding(
-          padding: padding ?? EdgeInsets.all(0),
-          child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                TopButton(Icons.sms, onPressed: () {
-                  ref.read(activeList.notifier).state = 0;
-                }),
-                TopButton(Icons.person, onPressed: () {
-                  ref.read(activeList.notifier).state = 1;
-                }),
-                TopButton(Icons.settings, onPressed: () {
-                  ref.read(activeList.notifier).state = 2;
-                  ref.read(selectedSettingsOptionProvider.notifier).state = 0;
-                }),
-              ],
+          if (Platform.isAndroid ||
+              Platform.isFuchsia ||
+              Platform.isIOS ||
+              width <= 600)
+            Padding(
+              padding: padding ?? EdgeInsets.all(0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TopButton(
+                    Icons.sms,
+                    onPressed: () {
+                      ref.read(activeList.notifier).state = 0;
+                    },
+                  ),
+                  TopButton(
+                    Icons.person,
+                    onPressed: () {
+                      ref.read(activeList.notifier).state = 1;
+                    },
+                  ),
+                  TopButton(
+                    Icons.settings,
+                    onPressed: () {
+                      ref.read(activeList.notifier).state = 2;
+                      ref.read(selectedSettingsOptionProvider.notifier).state = 0;
+                    },
+                  ),
+                ],
+              ),
             ),
-        )
         ],
       ),
     );
   }
 
-  Widget _buildFullLayout(int active, {Color? backgroundColor, Color? borderColor, double? borderRadius, double? chatTopBorderRadius, EdgeInsets? messageInputPadding, EdgeInsets? listPadding}) {
-    return Row(
-      spacing: 8,
+  Widget _buildFullLayout(
+    int active, {
+    Color? backgroundColor,
+    Color? borderColor,
+    double? borderRadius,
+    double? chatTopBorderRadius,
+    EdgeInsets? messageInputPadding,
+    EdgeInsets? listPadding,
+  }) {
+    return ResizableContainer(
+      direction: Axis.horizontal,
+      controller: resizableController,
       children: [
-        if (active == 0) ChatList(borderRadius: borderRadius, borderColor: borderColor, padding: listPadding),
-        if (active == 1) FriendList(borderRadius: borderRadius, borderColor: borderColor, padding: listPadding),
-        if (active == 2) SettingsList(borderRadius: borderRadius, borderColor: borderColor, padding: listPadding),
-
-        ([0, 1].contains(active))
-            ? ChatWindow(backgroundColor: backgroundColor, borderColor: borderColor, borderRadius: borderRadius, topBorderRadius: chatTopBorderRadius, messageInputPadding: messageInputPadding,)
-            : SettingsWindow(),
+        ResizableChild(
+          divider: ResizableDivider(
+              thickness: 8,
+              color: Colors.transparent,
+          ),
+          size: ResizableSize.ratio(0.35, min: 110),
+          child: (
+            (active == 0) ?
+          ChatList(
+            borderRadius: borderRadius,
+            borderColor: borderColor,
+            padding: listPadding,
+          ) : (active == 1) ?
+          FriendList(
+            borderRadius: borderRadius,
+            borderColor: borderColor,
+            padding: listPadding,
+          ) : (active == 2) ?
+          SettingsList(
+            borderRadius: borderRadius,
+            borderColor: borderColor,
+            padding: listPadding,
+          ): Container()
+          )
+        ),
+        ResizableChild(
+          size: ResizableSize.expand(min: 500),
+          child: ([0, 1].contains(active))
+            ? ChatWindow(
+                backgroundColor: backgroundColor,
+                borderColor: borderColor,
+                borderRadius: borderRadius,
+                topBorderRadius: chatTopBorderRadius,
+                messageInputPadding: messageInputPadding,
+            ) : SettingsWindow()
+        ),
       ],
     );
   }
 
-  Widget _buildMiniLayout(int active, int activeSettings, Chat? selectedChat, {Color? backgroundColor, Color? borderColor, double? borderRadius, double? chatTopBorderRadius, EdgeInsets? messageInputPadding, EdgeInsets? listPadding }) {
+  Widget _buildMiniLayout(
+    int active,
+    int activeSettings,
+    Chat? selectedChat, {
+    Color? backgroundColor,
+    Color? borderColor,
+    double? borderRadius,
+    double? chatTopBorderRadius,
+    EdgeInsets? messageInputPadding,
+    EdgeInsets? listPadding,
+  }) {
     if (selectedChat != null) {
-      return ChatWindow(backgroundColor: backgroundColor, borderColor: borderColor, borderRadius: borderRadius, topBorderRadius: chatTopBorderRadius, messageInputPadding: messageInputPadding);
+      return ChatWindow(
+        backgroundColor: backgroundColor,
+        borderColor: borderColor,
+        borderRadius: borderRadius,
+        topBorderRadius: chatTopBorderRadius,
+        messageInputPadding: messageInputPadding,
+        isExpanded: true
+      );
     }
     switch (active) {
       case 0:
-        return ChatList(borderRadius: borderRadius, borderColor: borderColor, padding: listPadding);
+        return ChatList(
+          borderRadius: borderRadius,
+          borderColor: borderColor,
+          padding: listPadding,
+          isExpanded: true
+        );
       case 1:
-        return FriendList(borderRadius: borderRadius, borderColor: borderColor, padding: listPadding);
+        return FriendList(
+          borderRadius: borderRadius,
+          borderColor: borderColor,
+          padding: listPadding,
+          isExpanded: true
+        );
       case 2:
-        //return SettingsWindow();
       default:
-        switch (activeSettings){
-          case 1: return SettingsWindow(backgroundColor: backgroundColor, borderColor: borderColor, borderRadius: borderRadius, textInputColor: context.colors.background);
-          case 2: return SettingsWindow(backgroundColor: backgroundColor, borderColor: borderColor, borderRadius: borderRadius, textInputColor: context.colors.background);
-          case 3: return SettingsWindow(backgroundColor: backgroundColor, borderColor: borderColor, borderRadius: borderRadius, textInputColor: context.colors.background);
-          default: return SettingsList(borderRadius: borderRadius, borderColor: borderColor, padding: listPadding);
+        switch (activeSettings) {
+          case 1:
+            return SettingsWindow(
+              backgroundColor: backgroundColor,
+              borderColor: borderColor,
+              borderRadius: borderRadius,
+              textInputColor: context.colors.background,
+              isExpanded: true
+            );
+          case 2:
+            return SettingsWindow(
+              backgroundColor: backgroundColor,
+              borderColor: borderColor,
+              borderRadius: borderRadius,
+              textInputColor: context.colors.background,
+              isExpanded: true
+            );
+          case 3:
+            return SettingsWindow(
+              backgroundColor: backgroundColor,
+              borderColor: borderColor,
+              borderRadius: borderRadius,
+              textInputColor: context.colors.background,
+              isExpanded: true
+            );
+          default:
+            return SettingsList(
+              borderRadius: borderRadius,
+              borderColor: borderColor,
+              padding: listPadding,
+              isExpanded: true
+            );
         }
-
-
     }
   }
 }

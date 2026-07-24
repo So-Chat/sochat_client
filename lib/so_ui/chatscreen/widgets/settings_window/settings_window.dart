@@ -15,12 +15,14 @@ class SettingsWindow extends ConsumerStatefulWidget {
     this.borderRadius = 10,
     this.textInputColor,
     this.borderColor,
+    this.isExpanded = false
   });
 
   final Color? borderColor;
   final Color? backgroundColor;
   final Color? textInputColor;
   final double? borderRadius;
+  final bool isExpanded;
 
   @override
   ConsumerState<ConsumerStatefulWidget> createState() => SettingsWindowState();
@@ -38,11 +40,11 @@ class SettingsWindowState extends ConsumerState<SettingsWindow>{
     final settingsController = ref.read(settingsControllerProvider.notifier);
 
     return BasePanel(
-        flex: 2,
         borderRadius: widget.borderRadius!,
         borderColor: widget.borderColor,
         backgroundColor: widget.backgroundColor ?? context.colors.foreground,
-        child: _buildOptions(selectedOption, settingsController)
+        child: _buildOptions(selectedOption, settingsController),
+        isExpanded: widget.isExpanded,
     );
 
 
