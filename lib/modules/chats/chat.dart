@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:sochat_client/modules/calls/call_state.dart';
 import 'package:sochat_client/modules/chats/participant.dart';
 import 'package:sochat_client/modules/chats/sender_key.dart';

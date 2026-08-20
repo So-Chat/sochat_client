@@ -4,9 +4,9 @@ import 'package:sochat_client/extenstions/theme_getter.dart';
 
 class SettingsButton extends ConsumerWidget {
 
-  SettingsButton(this.icon, {super.key, required this.size, this.onPressed, });
+  const SettingsButton(this.icon, {super.key, required this.size, this.onPressed, });
   final IconData icon;
-  double size;
+  final double size;
   final VoidCallback? onPressed;
 
   @override

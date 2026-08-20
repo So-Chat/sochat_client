@@ -1,7 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
+import 'package:sochat_client/extenstions/so_exception.dart';
 import 'package:sochat_client/main.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/common/local_storage_service.dart';
@@ -9,28 +9,21 @@ import 'package:sochat_client/modules/keys/key_service.dart';
 import 'package:sochat_client/modules/websocket/message_packet.dart';
 import 'package:sochat_client/modules/websocket/web_socket_service.dart';
 import 'package:sochat_client/so_ui/chatscreen/chat_screen.dart';
-import 'package:sochat_client/so_ui/common/so_exception.dart';
 
-import '../modules/notifications/notifications_service.dart';
 
-final loginControllerProvider = StateNotifierProvider<LoginController, LoginControllerState>((ref) {
-  final authService = ref.read(authServiceProvider);
+final loginControllerProvider = Provider<LoginController>((ref) {
+  final authService = ref.read(authServiceProvider.notifier);
   final keyService = ref.read(keyServiceProvider.notifier);
 
-  return LoginController(authService, keyService, ref);
+  return LoginController(authService, keyService);
 });
 
 
-class LoginControllerState {
-
-}
-
-class LoginController extends StateNotifier<LoginControllerState> {
+class LoginController{
   final AuthService _authService;
   final KeyService _keyService;
-  final Ref _ref;
 
-  LoginController(this._authService, this._keyService, this._ref) : super(LoginControllerState());
+  LoginController(this._authService, this._keyService);
 
   Future<void> login(
       BuildContext context,
@@ -87,7 +80,7 @@ class LoginController extends StateNotifier<LoginControllerState> {
     _authService.token = messagePacket.payload["token"];
     await webSocketService.authenticate(messagePacket.payload["token"]);
 
-    ref.read(localStorageServiceProvider.notifier).saveSession();
+    ref.read(localStorageServiceProvider).saveSession();
 
     Navigator.push(
         context, MaterialPageRoute(builder: (context) => ChatScreen()));
@@ -97,8 +90,7 @@ class LoginController extends StateNotifier<LoginControllerState> {
     final webSocketService = await ref.read(webSocketProvider.future);
     webSocketService.connect();
 
-    String token = await ref.read(localStorageServiceProvider.notifier).getSessionAndSetSelectedKeys();
-    print("got token");
+    String token = await ref.read(localStorageServiceProvider).getSessionAndSetSelectedKeys();
 
     _authService.token = token;
 
@@ -123,7 +115,7 @@ class LoginController extends StateNotifier<LoginControllerState> {
     final newContainer = ProviderContainer();
 
     oldContainer
-        .read(localStorageServiceProvider.notifier)
+        .read(localStorageServiceProvider)
         .removeSession();
 
     containerHolder.value = newContainer;

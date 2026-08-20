@@ -2,21 +2,20 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
 import 'package:sochat_client/so_ui/themes/theme_type.dart';
 import 'package:sochat_client/so_ux/settings_controller.dart';
 
-final localStorageServiceProvider = StateNotifierProvider<LocalStorageService, LocalStorageServiceState>((ref) {
-  return LocalStorageService(ref.read(keyServiceProvider.notifier), ref);
+final localStorageServiceProvider = Provider<LocalStorageService>((ref) {
+  return LocalStorageService(
+    ref.read(keyServiceProvider.notifier), ref
+  );
 });
 
-class LocalStorageServiceState {}
-
-class LocalStorageService extends StateNotifier<LocalStorageServiceState>{
-  LocalStorageService(this._keyService, this._ref) : super(LocalStorageServiceState());
+class LocalStorageService{
+  LocalStorageService(this._keyService, this._ref);
 
   final KeyService _keyService;
   final Ref _ref;
@@ -51,9 +50,9 @@ class LocalStorageService extends StateNotifier<LocalStorageServiceState>{
     final data = {
       "servers": servers,
       "profiles": profiles,
-      "selected_server": _ref.read(selectedServerProvider),
-      "selected_profile": _ref.read(selectedProfileProvider),
-      "theme": _ref.read(selectedThemeProvider).name
+      "selected_server": _ref.read(keyServiceProvider).selectedServer,
+      "selected_profile": _ref.read(keyServiceProvider).selectedProfile,
+      "theme": _ref.read(settingsControllerProvider).selectedTheme.name
     };
     return jsonEncode(data);
   }
@@ -63,7 +62,7 @@ class LocalStorageService extends StateNotifier<LocalStorageServiceState>{
     if (kDebugMode) return;
 
     String? data = await storage.read(key: "settings");
-    print("loaded data: $data");
+    debugPrint("loaded data: $data");
     if (data != null) {
       final mapData = jsonDecode(data);
       final selectedServer = mapData["selected_server"];
@@ -72,8 +71,8 @@ class LocalStorageService extends StateNotifier<LocalStorageServiceState>{
       final profileMap = mapData["profiles"];
       final currentTheme = mapData["theme"];
 
-      _ref.read(selectedProfileProvider.notifier).state = selectedProfile;
-      _ref.read(selectedServerProvider.notifier).state = selectedServer;
+      _ref.read(keyServiceProvider.notifier).setSelectedServer(selectedServer);
+      _ref.read(keyServiceProvider.notifier).setSelectedProfile(selectedProfile);
 
       for (final server in serverMap) {
         _ref.read(keyServiceProvider.notifier).parseServers(jsonEncode(server));
@@ -83,7 +82,7 @@ class LocalStorageService extends StateNotifier<LocalStorageServiceState>{
         _ref.read(keyServiceProvider.notifier).parseProfiles(jsonEncode(profile));
       }
 
-      _ref.read(selectedThemeProvider.notifier).state = ThemeType.values.byName(currentTheme);
+      _ref.read(settingsControllerProvider.notifier).setSelectedTheme(ThemeType.values.byName(currentTheme));
     }
     else {
       throw Exception("Settings returned null");
@@ -99,9 +98,9 @@ class LocalStorageService extends StateNotifier<LocalStorageServiceState>{
   Future<void> saveSession() async {
     if (kDebugMode) return;
     final data = {
-      "token": _ref.read(authServiceProvider).token,
-      "selected_server": _ref.read(selectedServerProvider),
-      "selected_profile": _ref.read(selectedProfileProvider),
+      "token": _ref.read(authServiceProvider.notifier).token,
+      "selected_server": _ref.read(keyServiceProvider).selectedServer,
+      "selected_profile": _ref.read(keyServiceProvider).selectedProfile,
     };
     await storage.write(key: "session", value: jsonEncode(data));
   }
@@ -112,8 +111,8 @@ class LocalStorageService extends StateNotifier<LocalStorageServiceState>{
     final data = await storage.read(key: "session");
     if (data != null) {
       final decodedData = jsonDecode(data);
-      _ref.read(selectedServerProvider.notifier).state = decodedData["selected_server"];
-      _ref.read(selectedProfileProvider.notifier).state = decodedData["selected_profile"];
+      _ref.read(keyServiceProvider.notifier).setSelectedServer( decodedData["selected_server"]);
+      _ref.read(keyServiceProvider.notifier).setSelectedProfile(decodedData["selected_profile"]);
       return decodedData["token"];
     }
     else {

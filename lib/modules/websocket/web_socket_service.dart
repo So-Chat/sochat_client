@@ -10,7 +10,6 @@ import 'package:sochat_client/modules/users/user.dart';
 import 'package:sochat_client/modules/websocket/message_packet.dart';
 import 'package:sochat_client/so_ui/notifications/so_notification.dart';
 import 'package:web_socket_channel/io.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
 
 final webSocketProvider = FutureProvider<WebSocketService>((ref) {
   final service = WebSocketService(ref, ref.read(keyServiceProvider.notifier));
@@ -76,7 +75,7 @@ class WebSocketService{
   }
 
   Future<void> connect() async {
-    String webSocketIp = "ws${_keyService.servers.entries.toList()[_ref.read(selectedServerProvider)].value.substring(4)}/ws";
+    String webSocketIp = "ws${_keyService.servers.entries.toList()[_ref.read(keyServiceProvider).selectedServer].value.substring(4)}/ws";
 
     channel = IOWebSocketChannel.connect(
         Uri.parse(webSocketIp), pingInterval: Duration(seconds: 10)
@@ -142,7 +141,6 @@ class WebSocketService{
         case "call_offer":
         case "call_answer":
         case "call_accept":{
-            print("hey");
             _callController.add(messagg);
             break;
         }
@@ -171,7 +169,8 @@ class WebSocketService{
     final completer = Completer();
     _pendingRequests[requestId] = completer;
 
-    print(messagePacket.toJson().toString());
+    // Use only if need to debug what client sends to server, cuz it makes a mess from logs
+    //print(messagePacket.toJson().toString());
 
     messagePacket.payload["requestId"] = requestId;
 
@@ -186,7 +185,8 @@ class WebSocketService{
   }
 
 
-  // MAY BE DELETED IN FUTURE
+  /* MAY BE DELETED IN FUTURE
+
   void _startPing() async {
     if (channel == null) return;
 
@@ -200,21 +200,22 @@ class WebSocketService{
           await sendRequest(message, duration: 1);
           stopwatch.stop();
           if (stopwatch.elapsed.inSeconds >= 10) {
-            print("Ping took longer than 10 seconds, freezing...");
+            debugPrint("Ping took longer than 10 seconds, freezing...");
 
             Timer(Duration(minutes: 4), () {
-              print("4 minutes passed, unfreezing system...");
+              debugPrint("4 minutes passed, unfreezing system...");
             });
           } else {
-            print("Ping was successful in ${stopwatch.elapsed.inSeconds} seconds");
+            debugPrint("Ping was successful in ${stopwatch.elapsed.inSeconds} seconds");
           }
         } catch (e) {
           stopwatch.stop();
-          print("Ping failed or timed out: $e");
+          debugPrint("Ping failed or timed out: $e");
         }
       },
     );
-  }
+    }
+    */
 
 
   Future<void> authenticate(String token) async {
@@ -224,11 +225,11 @@ class WebSocketService{
     MessagePacket request = await sendRequest(message);
 
     var user = jsonDecode(request.payload["user"]) as Map<String, dynamic>;
-    _ref.read(currentUserProvider.notifier).state = User(id: user["id"],
+    _ref.read(authServiceProvider.notifier).setCurrentUser(User(id: user["id"],
         nickname: user["nickname"],
         username: user["username"],
         description: user["description"],
-        x25519PublicKey: user["x25519PublicKey"]);
+        x25519PublicKey: user["x25519PublicKey"]));
 
     _friendsController.add(request);
   }

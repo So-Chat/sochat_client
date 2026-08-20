@@ -3,48 +3,61 @@ import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:http/http.dart';
 import 'package:sochat_client/modules/keys/key.dart';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart' hide Hmac;
 
-final keyServiceProvider = StateNotifierProvider<KeyService, KeyServiceState>((ref) {
-  final service = KeyService(ref);
-  return service;
-});
 
-final selectedProfileProvider = StateProvider<int>((ref) => 0);
-final selectedServerProvider = StateProvider<int>((ref) => 0);
+final keyServiceProvider = NotifierProvider<KeyService, KeyServiceState>(
+  KeyService.new,
+);
+
 
 class KeyServiceState {
+  final int selectedProfile;
+  final int selectedServer;
+
   final Map<String, KeyP> profiles;
   final Map<String, String> servers;
 
   KeyServiceState({
+    this.selectedProfile = 0,
+    this.selectedServer = 0,
     required this.profiles,
     required this.servers,
   });
 
   KeyServiceState copyWith({
+    int? selectedProfile,
+    int? selectedServer,
     Map<String, KeyP>? profiles,
     Map<String, String>? servers})
   {
     return KeyServiceState(
+      selectedProfile: selectedProfile ?? this.selectedProfile,
+      selectedServer: selectedServer ?? this.selectedServer,
       profiles: profiles ?? this.profiles,
       servers: servers ?? this.servers,
     );
   }
 }
 
-class KeyService extends StateNotifier<KeyServiceState> {
-  KeyService(this.ref) : super(KeyServiceState(profiles: {}, servers: {}));
-
-  final Ref ref;
-
+class KeyService extends Notifier<KeyServiceState> {
   Map<String, KeyP> get profiles => state.profiles;
   Map<String, String> get servers => state.servers;
+
+  int get selectedProfile => state.selectedProfile;
+  int get selectedServer => state.selectedServer;
+
+
+  @override
+  KeyServiceState build() {
+    return KeyServiceState(
+      profiles: {}, servers: {}
+    );
+  }
 
   Future<void> generateProfile() async {
     final keyPair = await KeyP.generate();
@@ -56,6 +69,12 @@ class KeyService extends StateNotifier<KeyServiceState> {
     state = state.copyWith(profiles: newProfiles);
   }
 
+  void setSelectedProfile(int index) {
+    state = state.copyWith(selectedProfile: index);
+  }
+  void setSelectedServer(int index) {
+    state = state.copyWith(selectedServer: index);
+  }
 
   void addProfile(String key, KeyP value) {
     state = state.copyWith(profiles: {...profiles, key: value});
@@ -206,7 +225,7 @@ class KeyService extends StateNotifier<KeyServiceState> {
   }
 
   Future<String> generateFingerprint() async {
-    Uint8List keyP = profiles.entries.toList()[ref.read(selectedProfileProvider)].value.x509ed25519PublicKey();
+    Uint8List keyP = profiles.entries.toList()[selectedProfile].value.x509ed25519PublicKey();
     final bytes = utf8.encode(base64.encode(keyP));
     final digest = sha256.convert(bytes);
 

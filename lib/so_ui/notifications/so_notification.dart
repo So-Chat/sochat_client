@@ -7,12 +7,12 @@ import 'package:sochat_client/so_ui/common/so_button.dart';
 import '../../context/notifications/inapp_notifications_manager.dart';
 
 class SoNotification extends ConsumerWidget {
-  String? title;
-  String? content;
-  IconData? icon;
-  bool canCopy;
+  final String? title;
+  final String? content;
+  final IconData? icon;
+  final bool canCopy;
 
-  SoNotification({super.key, this.title, this.content, this.icon, this.canCopy = false});
+  const SoNotification({super.key, this.title, this.content, this.icon, this.canCopy = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

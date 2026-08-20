@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/rendering.dart';
 import 'package:flutter_miniaudio/flutter_miniaudio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
@@ -45,35 +46,66 @@ class CaptureService {
   RTCPeerConnection? bootstrapPc;
 
   Future<void> initializeLocalStream({
-    String? audioId,
-    String? videoId,
     bool audio = true,
     bool video = false,
   }) async {
-    if (_localStream != null) {
-      await disposeLocalStream();
-    }
+    try {
+      if (_localStream != null) {
+        await disposeLocalStream();
+      }
 
-    final constraints = {
-      'audio': {
-              'sourceId': audioId ?? true,
-              'deviceId': audioId ?? true,
-              'echoCancellation': false,
-              'googEchoCancellation': false,
-              'googEchoCancellation2': false,
-              'googNoiseSuppression': false,
-              'googNoiseSuppression2': false,
-              'googAutoGainControl': false,
-              'googHighpassFilter': false,
-      },
-      'video': videoId ?? false,
+    Map<String, dynamic> audioConstraints = {
+      'echoCancellation': true,
+      'googEchoCancellation': true,
+      'googNoiseSuppression': true,
+      'googAutoGainControl': false,
     };
 
-    if (audioId != null) {
-      await Helper.selectAudioInput(audioId);
-    }
 
-    _localStream = await navigator.mediaDevices.getUserMedia(constraints);
+    final videoConstraints = (video &&
+            selectedVideoInput != null &&
+            selectedVideoInput!.deviceId.isNotEmpty)
+      ? <String, dynamic>{
+          'optional': [
+            {'sourceId': selectedVideoInput!.deviceId},
+          ],
+        }
+      : false;
+
+      if (audio &&
+        selectedAudioInput != null &&
+        selectedAudioInput!.deviceId.isNotEmpty) {
+        audioConstraints['optional'] = {'sourceId': selectedAudioInput!.deviceId};
+      } else {
+        audioConstraints['deviceId'] = true;
+      }
+
+      final constraints = {
+        'audio': audioConstraints,
+        'video': videoConstraints
+      };
+
+
+      _localStream = await mediaDevices.getUserMedia(constraints);
+
+      userAudio = _localStream!.getAudioTracks().isNotEmpty;
+      userVideo = _localStream!.getVideoTracks().isNotEmpty;
+
+
+      if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+        // Because getUserMedia often uses wrong devices despite setting certain devices
+        // I set Audio input and output by force using Helper
+        // Only in desktop
+        if (selectedAudioInput != null &&
+          selectedAudioInput!.deviceId.isNotEmpty) {
+            await Helper.selectAudioInput(selectedAudioInput!.deviceId);
+          }
+
+          await Helper.selectAudioOutput(selectedAudioOutput!.deviceId);
+      }
+    } catch (e) {
+      throw Exception(e);
+    }
   }
 
   Future<void> initializeDeviceList() async {
@@ -123,7 +155,7 @@ class CaptureService {
       } else if (d.kind == "videoinput") {
         videoInputDevices.add(d);
       }
-      print("${d.kind} ${d.label} ${d.groupId} ${d.deviceId}");
+      debugPrint("${d.kind} ${d.label} ${d.groupId} ${d.deviceId}");
     }
   }
 
@@ -141,12 +173,25 @@ class CaptureService {
     );
   }
 
-  void setMediaInputs({bool audio = false, bool video = false}) {
-    if (_localStream != null) {
-      _localStream?.getAudioTracks().forEach((t) => t.enabled = audio);
-      _localStream?.getVideoTracks().forEach((t) => t.enabled = video);
+  void setMediaInputs({bool? audio, bool? video}) {
+    final audioTracks = _localStream?.getAudioTracks() ?? [];
+    final videoTracks = _localStream?.getVideoTracks() ?? [];
+
+    if (audio != null && audioTracks.isNotEmpty) {
+      for (final track in audioTracks) {
+        track.enabled = audio;
+      }
+      userAudio = audio;
+    }
+
+    if (video != null && videoTracks.isNotEmpty) {
+      for (final track in videoTracks) {
+        track.enabled = video;
+      }
+      userVideo = video;
     }
   }
+
 
   Future<void> playRemoteAudio(MediaStream stream) async {
     final audioRenderer = RTCVideoRenderer();
@@ -166,7 +211,7 @@ class CaptureService {
     final devices = await navigator.mediaDevices.enumerateDevices();
 
     for (final d in devices) {
-      print('${d.kind} | ${d.label} | ${d.deviceId}');
+      debugPrint('${d.kind} | ${d.label} | ${d.deviceId}');
     }
     return devices;
   }

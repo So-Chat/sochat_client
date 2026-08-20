@@ -1,27 +1,65 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:sochat_client/modules/common/local_storage_service.dart';
 import 'package:sochat_client/so_ui/themes/dark/dark_theme.dart';
 import 'package:sochat_client/so_ui/themes/light/light_theme.dart';
 import 'package:sochat_client/so_ui/themes/theme_type.dart';
 
-final settingsControllerProvider = StateNotifierProvider<SettingsController, SettingsControllerState>((ref) {
-  return SettingsController(ref);
-});
+final settingsControllerProvider =
+    NotifierProvider<SettingsController, SettingsState>(SettingsController.new);
 
-final selectedSettingsOptionProvider = StateProvider<int>((ref) => 1);
-final selectedThemeProvider = StateProvider<ThemeType>(
-        (ref) => ThemeType.dark);
+class SettingsState {
+  final int selectedOption;
+  final ThemeType selectedTheme;
 
-class SettingsControllerState {
+  final bool settingsToggle;
+  final int selectedSetting;
+
+  const SettingsState({
+    this.selectedOption = 1,
+    this.selectedTheme = ThemeType.dark,
+    this.settingsToggle = false,
+    this.selectedSetting = 0,
+  });
+
+  SettingsState copyWith({
+    int? selectedOption,
+    ThemeType? selectedTheme,
+    bool? settingsToggle,
+    int? selectedSetting,
+  }) {
+    return SettingsState(
+      selectedOption: selectedOption ?? this.selectedOption,
+      selectedTheme: selectedTheme ?? this.selectedTheme,
+      settingsToggle: settingsToggle ?? this.settingsToggle,
+      selectedSetting: selectedSetting ?? this.selectedSetting,
+    );
+  }
 }
 
-class SettingsController extends StateNotifier<SettingsControllerState> {
-  Ref ref;
+class SettingsController extends Notifier<SettingsState> {
+  int? get selectedOption => state.selectedOption;
+  ThemeType? get selectedTheme => state.selectedTheme;
+  bool? get settingsToggle => state.settingsToggle;
+  int? get selectedSetting => state.selectedSetting;
 
-  SettingsController(this.ref) : super(SettingsControllerState());
+  @override
+  SettingsState build() {
+    return SettingsState();
+  }
+
+  void setSelectedOption(int option) {
+    state = state.copyWith(selectedOption: option);
+  }
+  void setSelectedTheme(ThemeType theme) {
+    state = state.copyWith(selectedTheme: theme);
+  }
+  void setSettingsToggle(bool toggle) {
+    state = state.copyWith(settingsToggle: toggle);
+  }
+  void setSelectedSetting(int setting) {
+    state = state.copyWith(selectedSetting: setting);
+  }
 
   List<ThemeExtension<dynamic>> getTheme(ThemeType theme) {
     switch (theme) {
@@ -34,13 +72,13 @@ class SettingsController extends StateNotifier<SettingsControllerState> {
     }
   }
 
-  void changeTheme(){
-    if (ref.read(selectedThemeProvider) == ThemeType.dark){
-      ref.read(selectedThemeProvider.notifier).state = ThemeType.light;
-      ref.read(localStorageServiceProvider.notifier).saveSettings();
+  void changeTheme() {
+    if (selectedTheme == ThemeType.dark) {
+      setSelectedTheme(ThemeType.light);
+      ref.read(localStorageServiceProvider).saveSettings();
       return;
     }
-    ref.read(selectedThemeProvider.notifier).state = ThemeType.dark;
-    ref.read(localStorageServiceProvider.notifier).saveSettings();
+    setSelectedTheme(ThemeType.dark);
+    ref.read(localStorageServiceProvider).saveSettings();
   }
 }

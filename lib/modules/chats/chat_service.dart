@@ -2,9 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:cryptography/cryptography.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
+import 'package:sochat_client/extenstions/so_exception.dart';
 import 'package:sochat_client/modules/calls/call_state.dart';
 import 'package:sochat_client/modules/chats/chat.dart';
 import 'package:sochat_client/modules/chats/chat_role.dart';
@@ -17,64 +18,51 @@ import 'package:sochat_client/modules/users/user_service.dart';
 import 'package:sochat_client/modules/websocket/message_packet.dart';
 import 'package:sochat_client/modules/users/user.dart';
 import 'package:sochat_client/modules/websocket/web_socket_service.dart';
-import 'package:sochat_client/so_ui/common/so_exception.dart';
-import 'package:sochat_client/so_ux/chat_controller.dart';
 
 import '../common/auth_service.dart';
 import '../keys/key_service.dart';
 
-final chatsServiceProvider = StateNotifierProvider<ChatService, ChatsState>((
-  ref,
-) {
-  return ChatService(
-    ref.read(webSocketProvider.future),
-    ref.read(keyServiceProvider.notifier),
-    ref.read(authServiceProvider),
-    ref.read(userServiceProvider.notifier),
-    ref.read(currentUserProvider),
-    ref,
-  );
-});
+final chatsServiceProvider =
+    NotifierProvider<ChatService, ChatsState>(
+  ChatService.new,
+);
 
 class ChatsState {
   final List<Chat> chatList;
 
-  ChatsState({required this.chatList});
+  const ChatsState({required this.chatList});
 
   ChatsState copyWith({List<Chat>? chats}) {
     return ChatsState(chatList: chats ?? chatList);
   }
 }
 
-class ChatService extends StateNotifier<ChatsState> {
+class ChatService extends Notifier<ChatsState> {
   late final WebSocketService _webSocket;
-  final KeyService _keyService;
-  final AuthService _authService;
-  final UserService _userService;
-  final User? currentUser;
+  late final KeyService _keyService;
+  late final UserService _userService;
 
-  final Ref _ref;
+  User? get currentUser => ref.read(authServiceProvider).currentUser;
 
   List<Chat> get chatList => state.chatList;
 
-  ChatService(
-    Future<WebSocketService> webSocketFuture,
-    this._keyService,
-    this._authService,
-    this._userService,
-    this.currentUser,
-    this._ref,
-  ) : super(ChatsState(chatList: [])) {
-    webSocketFuture
-        .then((ws) {
-          _webSocket = ws;
-          startListen();
-        })
-        .catchError((error) {
-          throw Exception(
-            "WebSocket initialization in ChatService fall in error!\nstacktrace: $error",
-          );
-        });
+  @override
+  ChatsState build() {
+    _keyService = ref.read(keyServiceProvider.notifier);
+    _userService = ref.read(userServiceProvider);
+
+    ref.watch(webSocketProvider.future).then((ws) {
+      _webSocket = ws;
+      startListen();
+    });
+
+    ref.onDispose(() {
+      _subscription?.cancel();
+    });
+
+    return const ChatsState(
+      chatList: [],
+    );
   }
 
   StreamSubscription? _subscription;
@@ -110,18 +98,10 @@ class ChatService extends StateNotifier<ChatsState> {
     });
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-    _subscription?.cancel();
-  }
-
   void remove(String chatName) {
     final newList = List<Chat>.from(chatList);
 
     newList.removeWhere((chat) => chat.title == chatName);
-
-    _ref.read(selectedChatProvider.notifier).state = null;
 
     state = state.copyWith(chats: newList);
   }
@@ -143,12 +123,9 @@ class ChatService extends StateNotifier<ChatsState> {
     MessagePacket message = MessagePacket(type: "chat_list", payload: {});
     MessagePacket request = await _webSocket.sendRequest(message);
 
-    print(request);
-
     final List<Map<String, dynamic>> chatList =
         (jsonDecode(request.payload['chats']) as List)
             .cast<Map<String, dynamic>>();
-    print("chatList: $chatList");
 
     for (var c in chatList) {
       addUpdate(await receiveChat(c));
@@ -158,7 +135,7 @@ class ChatService extends StateNotifier<ChatsState> {
   Future<Chat> getChatByName(String username) async {
     if (chatList.any((c) => c.title == username)) {
       Chat localChat = chatList.firstWhere((c) => c.title == username);
-      if (_ref.read(chatMessagesProvider)[localChat.id]!.length > 1) {
+      if (ref.read(messageServiceProvider).messageMap[localChat.id]!.length > 1) {
         return localChat;
       }
     }
@@ -178,8 +155,8 @@ class ChatService extends StateNotifier<ChatsState> {
   Future<Chat> getChatById(int id) async {
     if (chatList.any((c) => c.id == id)) {
       Chat localChat = chatList.firstWhere((c) => c.id == id);
-      if (_ref.read(chatMessagesProvider).containsKey(id) &&
-          _ref.read(chatMessagesProvider)[id]!.length > 1) {
+      if (ref.read(messageServiceProvider).messageMap.containsKey(id) &&
+          ref.read(messageServiceProvider).messageMap[id]!.length > 1) {
         return localChat;
       }
     }
@@ -207,7 +184,7 @@ class ChatService extends StateNotifier<ChatsState> {
 
     String fromEncryptKey = await _keyService.encryptAesWithX25519(
       _keyService.profiles.entries
-          .toList()[_ref.read(selectedProfileProvider)]
+          .toList()[ref.read(keyServiceProvider).selectedProfile]
           .value
           .x25519PublicKeyBase64(),
       secretKey,
@@ -297,7 +274,7 @@ class ChatService extends StateNotifier<ChatsState> {
             key: (await _keyService.decryptAesWithX25519(
               storedString: senderKeyJson["chatKey"],
               keyBytes: _keyService.profiles.entries
-                  .toList()[_ref.read(selectedProfileProvider)]
+                  .toList()[ref.read(keyServiceProvider).selectedProfile]
                   .value
                   .privateKeyX!,
             )),
@@ -305,24 +282,17 @@ class ChatService extends StateNotifier<ChatsState> {
 
           chat.chatKeys.add(senderKey);
         }
-        print(chat.chatKeys.length);
-        print(chat.chatKeys);
-
-        print(senderKeysJson.length);
-        print(senderKeysJson);
       }
 
       if (chatMap["lastSenderKey"] != null ||
           chatMap["lastMessage"].runtimeType == String) {
         final senderKeyJson = chatMap["lastSenderKey"];
-        print(chat.title);
-        print(chatMap);
         SenderKey senderKey = SenderKey(
           keyVersion: senderKeyJson["keyVersion"],
           key: (await _keyService.decryptAesWithX25519(
             storedString: senderKeyJson["chatKey"],
             keyBytes: _keyService.profiles.entries
-                .toList()[_ref.read(selectedProfileProvider)]
+                .toList()[ref.read(keyServiceProvider).selectedProfile]
                 .value
                 .privateKeyX!,
           )),
@@ -333,11 +303,6 @@ class ChatService extends StateNotifier<ChatsState> {
           chatMap["lastMessage"].runtimeType == String) {
         final messageJson = chatMap["lastMessage"];
 
-        print(
-          chat.title +
-              ":" +
-              chat.findChatKeyByVersion(messageJson['keyVersion']).toString(),
-        );
         if (chat.findChatKeyByVersion(chat.chatKeys.last.keyVersion) != null) {
           messageJson['content'] = await _keyService.decryptWithAes(
             messageJson['content'],
@@ -360,18 +325,18 @@ class ChatService extends StateNotifier<ChatsState> {
             ));
             message = Message.fromJson(messageJson, sender);
           }
-          _ref.read(messageServiceProvider.notifier).addMessage(message);
+          ref.read(messageServiceProvider.notifier).addMessage(message);
         }
       }
 
       return chat;
     } on Exception catch (e) {
-      print("Error loading chat, chatmap: $chatMap");
+      debugPrint("Error loading chat, chatmap: $chatMap");
       throw Exception(e);
     }
   }
 
-  Future<void> addParticipant(int userId, Chat chat) async {
+  Future<Chat> addParticipantToChat(int userId, Chat chat) async {
     Map<String, String> users = {};
     User user = await _userService.getUser(id: userId);
 
@@ -408,15 +373,7 @@ class ChatService extends StateNotifier<ChatsState> {
 
     addUpdate(newChat);
 
-    final selectedChat = _ref.read(selectedChatProvider);
-
-    if (selectedChat != null && selectedChat.id == newChat.id) {
-      _ref.read(selectedChatProvider.notifier).state = newChat;
-    }
-    if (selectedChat != null && selectedChat.id == chat.id) {
-      final updatedChat = state.chatList.firstWhere((c) => c.id == chat.id);
-      _ref.read(selectedChatProvider.notifier).state = updatedChat;
-    }
+    return newChat;
   }
 
   Future<List<User>> _getUsersByChat(int chatId) async {
@@ -454,7 +411,7 @@ class ChatService extends StateNotifier<ChatsState> {
     }
   }
 
-  void updateParticipantLastRead(int chatId, int userId, int lastMessageId) {
+  Chat updateParticipantLastReadInChat(int chatId, int userId, int lastMessageId,) {
     final updatedChats = state.chatList.map((chat) {
       if (chat.id != chatId) {
         return chat;
@@ -462,25 +419,21 @@ class ChatService extends StateNotifier<ChatsState> {
 
       final updatedParticipants = chat.participants.map((p) {
         if (p.user.id == userId) {
-          debugPrint(
-            "Edited participant: ${p.user.username}, ${p.lastReadMessageId}",
-          );
           return p.copyWith(lastReadMessageId: lastMessageId);
         }
         return p;
       }).toList();
 
-      return chat.copyWith(participants: updatedParticipants, callState: chat.callState);
+      return chat.copyWith(
+        participants: updatedParticipants,
+        callState: chat.callState,
+      );
     }).toList();
 
     state = state.copyWith(chats: List<Chat>.from(updatedChats));
 
     final updated = state.chatList.firstWhere((c) => c.id == chatId);
 
-    final selectedChat = _ref.read(selectedChatProvider);
-
-    if (selectedChat != null && selectedChat.id == chatId) {
-      _ref.read(selectedChatProvider.notifier).state = updated;
-    }
+    return updated;
   }
 }

@@ -7,7 +7,6 @@ import 'package:sochat_client/modules/users/user.dart';
 import 'package:sochat_client/modules/users/user_service.dart';
 import 'package:sochat_client/so_ui/common/input.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
-import 'package:sochat_client/so_ux/settings_controller.dart';
 
 class Account extends ConsumerStatefulWidget {
 
@@ -30,14 +29,14 @@ class AccountState extends ConsumerState<Account> {
   @override
   void initState() {
     super.initState();
-    final currentUser = ref.read(currentUserProvider);
+    final currentUser = ref.read(authServiceProvider).currentUser;
     nicknameController.text = currentUser?.nickname ?? "";
     usernameController.text = currentUser?.username ?? "";
     descriptionController.text = currentUser?.description ?? "";
   }
 
   void checkChange(){
-    final currentUser = ref.read(currentUserProvider);
+    final currentUser = ref.read(authServiceProvider).currentUser;
     setState(() {
       isChanged = (currentUser!.nickname != nicknameController.text) ||
           (currentUser.username != usernameController.text) ||
@@ -47,20 +46,22 @@ class AccountState extends ConsumerState<Account> {
 
   @override
   Widget build(BuildContext context) {
-    final settingsController = ref.read(settingsControllerProvider.notifier);
-    final authService = ref.watch(authServiceProvider);
-    final userService = ref.watch(userServiceProvider.notifier);
-    final currentUser = ref.watch(currentUserProvider);
+    final userService = ref.watch(userServiceProvider);
+    final currentUser = ref.watch(authServiceProvider).currentUser;
 
-    ref.listen<User?>(currentUserProvider, (prev, next) {
-      if (!mounted || next == null) return;
-      nicknameController.text = next.nickname ?? "";
-      usernameController.text = next.username;
-      descriptionController.text = next.description ?? "";
-      setState(() {
-        isChanged = false;
-      });
-    });
+    ref.listen<User?>(authServiceProvider.select((state) => state.currentUser),
+      (prev, next) {
+        if (!mounted || next == null) return;
+
+        nicknameController.text = next.nickname;
+        usernameController.text = next.username;
+        descriptionController.text = next.description ?? "";
+
+        setState(() {
+          isChanged = false;
+        });
+      },
+    );
 
     return Padding(
       padding: const EdgeInsets.all(8.0),

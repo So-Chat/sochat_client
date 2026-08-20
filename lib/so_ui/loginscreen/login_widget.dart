@@ -3,13 +3,11 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sochat_client/extenstions/so_exception.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
-import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/common/local_storage_service.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
-import 'package:sochat_client/so_ui/common/so_exception.dart';
-import 'package:sochat_client/so_ui/loginscreen/login_screen.dart';
 import 'package:sochat_client/so_ui/loginscreen/widgets/login_button.dart';
 import 'package:sochat_client/so_ui/loginscreen/widgets/login_input.dart';
 import 'package:sochat_client/so_ui/loginscreen/widgets/settings_button.dart';
@@ -37,10 +35,9 @@ class LoginPageWidget extends ConsumerState<LoginWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final authService = ref.read(authServiceProvider);
     final keyService = ref.read(keyServiceProvider);
 
-    final loginController = ref.read(loginControllerProvider.notifier);
+    final loginController = ref.read(loginControllerProvider);
 
     return Padding(
       padding: EdgeInsetsGeometry.directional(top: 20, bottom: 15),
@@ -73,8 +70,8 @@ class LoginPageWidget extends ConsumerState<LoginWidget> {
                       await loginController.login(
                           context,
                           widget.usernameController.text,
-                          ref.read(selectedProfileProvider),
-                          ref.read(selectedServerProvider),
+                          ref.read(keyServiceProvider).selectedProfile,
+                          ref.read(keyServiceProvider).selectedServer,
                           ref
                       );
                     } on SocketException catch (e) {
@@ -85,14 +82,14 @@ class LoginPageWidget extends ConsumerState<LoginWidget> {
                       setError("Unknown error: $e");
                     }
                   })),
-                  SettingsButton(Icons.settings, size: 43, onPressed: () {ref.read(settingsToggle.notifier).state = !ref.read(settingsToggle);}),
+                  SettingsButton(Icons.settings, size: 43, onPressed: () {ref.read(settingsControllerProvider.notifier).setSettingsToggle(!ref.read(settingsControllerProvider).settingsToggle);}),
                 ],
               ),
               LoginButton(text: "Register", color: context.colors.positive, onTap: () {
                 setError("");
                 try {
                   loginController.register(context, widget.usernameController.text,
-                      ref.read(selectedProfileProvider), ref.read(selectedServerProvider), ref);
+                    ref.read(keyServiceProvider).selectedProfile, ref.read(keyServiceProvider).selectedServer, ref);
                 } on SocketException catch (e) {
                   setError(e.message);
                 } on SoException catch (e) {
@@ -108,36 +105,36 @@ class LoginPageWidget extends ConsumerState<LoginWidget> {
                       LoginButton(text: "Kafka", color: context.colors.critical, onTap: () async {
                         widget.usernameController.text = "kafka";
                         ref.read(keyServiceProvider.notifier).parseProfiles('{"profile1":{"ed25519publicKey":"WE6YkhFUBrteC+3Z5kXQ98HbR+OxDZEoglpDnGe58i4=","ed25519privateKey":"fPIX2aL/xfu3rDDV0FnVgvpPCiIjaJZ5C5UvTB+LjJk="}}');
-                        ref.read(selectedProfileProvider.notifier).state = keyService.profiles.length-1;
+                        ref.read(keyServiceProvider.notifier).setSelectedProfile(keyService.profiles.length - 1);
                         loginController.login(context, widget.usernameController.text,
-                            ref.read(selectedProfileProvider), ref.read(selectedServerProvider), ref);
+                          ref.read(keyServiceProvider).selectedProfile, ref.read(keyServiceProvider).selectedServer, ref);
 
                       }),
                       LoginButton(text: "Silver", color: context.colors.critical, onTap: () {
                         widget.usernameController.text = "silver";
                         ref.read(keyServiceProvider.notifier).parseProfiles('{"profile2":{"ed25519publicKey":"rIO/d0h1lLIiy0oUNhReQncJku8+jN8cLNVN1594hbg=","ed25519privateKey":"n50jTg/3yw69h53e5Q5e1yuRsfcMUxN4YPXFSvE8fu0="}}');
-                        ref.read(selectedProfileProvider.notifier).state = keyService.profiles.length - 1;
+                        ref.read(keyServiceProvider.notifier).setSelectedProfile(keyService.profiles.length - 1);
                         loginController.login(context, widget.usernameController.text,
-                            ref.read(selectedProfileProvider), ref.read(selectedServerProvider), ref);
+                            ref.read(keyServiceProvider).selectedProfile, ref.read(keyServiceProvider).selectedServer, ref);
                       }),
                       LoginButton(text: "hero", color: context.colors.critical, onTap: () {
                         widget.usernameController.text = "hero";
                         ref.read(keyServiceProvider.notifier).parseProfiles('{"profile2":{"ed25519publicKey":"d7u94NKVtO7vk/llLvMw+sLkTprYE1fIcq6WoDcgTQ4=","ed25519privateKey":"kcVXn/UNBwz0GcnT5idmFkL60FobvugpB5exYDQh6d0="}}');
-                        ref.read(selectedProfileProvider.notifier).state = keyService.profiles.length - 1;
+                        ref.read(keyServiceProvider.notifier).setSelectedProfile(keyService.profiles.length - 1);
                         loginController.login(context, widget.usernameController.text,
-                            ref.read(selectedProfileProvider), ref.read(selectedServerProvider), ref);
+                          ref.read(keyServiceProvider).selectedProfile, ref.read(keyServiceProvider).selectedServer, ref);
                       }),
-                      LoginButton(text: "Build", color: context.colors.textSecondary, onTap: () { ref.read(localStorageServiceProvider.notifier).buildSettingsJSON(); }),
-                      LoginButton(text: "Save", color: context.colors.textSecondary, onTap: () { ref.read(localStorageServiceProvider.notifier).saveSettings(); }),
-                      LoginButton(text: "Load", color: context.colors.textSecondary, onTap: () { ref.read(localStorageServiceProvider.notifier).loadSettings(); }),
-                      LoginButton(text: "Purge", color: context.colors.textSecondary, onTap: () { ref.read(localStorageServiceProvider.notifier).purgeData(); }),
+                      LoginButton(text: "Build", color: context.colors.textSecondary, onTap: () { ref.read(localStorageServiceProvider).buildSettingsJSON(); }),
+                      LoginButton(text: "Save", color: context.colors.textSecondary, onTap: () { ref.read(localStorageServiceProvider).saveSettings(); }),
+                      LoginButton(text: "Load", color: context.colors.textSecondary, onTap: () { ref.read(localStorageServiceProvider).loadSettings(); }),
+                      LoginButton(text: "Purge", color: context.colors.textSecondary, onTap: () { ref.read(localStorageServiceProvider).purgeData(); }),
                     ],
                   ),
                   SoButton(height: 10, color: context.colors.textSecondary, onPressed: () { ref.read(settingsControllerProvider.notifier).changeTheme(); }, child:Text("Theme")),
                 ],
               ),
 
-              
+
             ],
           )
         ],

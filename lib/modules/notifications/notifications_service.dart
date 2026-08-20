@@ -31,7 +31,6 @@ final notificationsProvider = FutureProvider<FlutterLocalNotificationsPlugin>((r
 
   await plugin.initialize(
     onDidReceiveNotificationResponse: (response) {
-      print('payload: ${response.payload}');
     }, settings: settings,
   );
 

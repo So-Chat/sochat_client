@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
@@ -7,11 +5,8 @@ import 'package:sochat_client/context/context_menu.dart';
 import 'package:sochat_client/context/menus.dart';
 import 'package:sochat_client/extenstions/utils.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
-import 'package:sochat_client/modules/keys/key_service.dart';
-import 'package:sochat_client/modules/media/media_service.dart';
 import 'package:sochat_client/modules/messages/message.dart';
 import 'package:sochat_client/so_ui/chatscreen/widgets/chat_window/chat_media.dart';
-import 'package:sochat_client/so_ui/common/sub_buttons/downloadable_file.dart';
 import 'package:sochat_client/so_ux/chat_controller.dart';
 
 class MessageList extends ConsumerStatefulWidget {
@@ -36,13 +31,10 @@ class MessageListState extends ConsumerState<MessageList> {
     super.initState();
 
     final chatController = ref.read(chatControllerProvider.notifier);
-
-    final authService = ref.read(authServiceProvider);
-
-    final currentUser = ref.read(currentUserProvider);
+    final currentUser = ref.read(authServiceProvider).currentUser;
 
     _itemPositionsListener.itemPositions.addListener(() {
-      final selectedChat = ref.read(selectedChatProvider);
+      final selectedChat = ref.read(chatControllerProvider).selectedChat;
 
       if (isAtBottom(ref.read(chatMessagesProvider)[selectedChat!.id]!)) {
         chatController.loadRecentMessages();
@@ -92,11 +84,8 @@ class MessageListState extends ConsumerState<MessageList> {
   @override
   Widget build(BuildContext context) {
     final messageMap = ref.watch(chatMessagesProvider);
-    final selectedChat = ref.watch(selectedChatProvider);
-    final authService = ref.watch(authServiceProvider);
-    final currentUser = ref.watch(currentUserProvider);
-    final mediaService = ref.watch(mediaServiceProvider);
-    final keyService = ref.watch(keyServiceProvider);
+    final selectedChat = ref.watch(chatControllerProvider).selectedChat;
+    final currentUser = ref.watch(authServiceProvider).currentUser;
 
     messageMap[selectedChat!.id] ??= [];
     return Expanded(

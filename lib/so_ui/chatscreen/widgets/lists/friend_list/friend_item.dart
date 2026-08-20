@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/context/menus.dart';
-import 'package:sochat_client/context/context_manager.dart';
 import 'package:sochat_client/context/context_menu.dart';
 import 'package:sochat_client/context/context_menu_button.dart';
 import 'package:sochat_client/modules/users/user.dart';
@@ -26,7 +25,6 @@ class FriendItem extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final contextManager = ref.read(contextManagerProvider);
 
     Color buttonColor = color ?? Colors.transparent;
 

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:sochat_client/modules/common/local_storage_service.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
@@ -7,9 +6,7 @@ import 'package:sochat_client/so_ui/loginscreen/keysettings.dart';
 import 'package:sochat_client/so_ui/loginscreen/login_widget.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/so_ux/login_controller.dart';
-
-
-final settingsToggle = StateProvider<bool>((ref) => false);
+import 'package:sochat_client/so_ux/settings_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -30,8 +27,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _checkSession() async {
-    final localStorageService = ref.read(localStorageServiceProvider.notifier);
-    final loginController = ref.read(loginControllerProvider.notifier);
+    final localStorageService = ref.read(localStorageServiceProvider);
+    final loginController = ref.read(loginControllerProvider);
 
     if (await localStorageService.checkForContainingSession()) {
       loginController.authenticateWithActiveSession(context, ref);
@@ -40,11 +37,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final toggle = ref.watch(settingsToggle);
+    final toggle = ref.watch(settingsControllerProvider).settingsToggle;
 
-
-    ref.watch(selectedProfileProvider);
-    ref.watch(selectedServerProvider);
     ref.watch(keyServiceProvider);
     ref.watch(keyServiceProvider.notifier);
 

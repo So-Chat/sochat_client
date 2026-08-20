@@ -37,8 +37,6 @@ class KeyP {
     var privateKeyX = await x25519KeyPair.extractPrivateKeyBytes();
     var publicKeyX = publicKey.bytes;
 
-    print("PrivateX:  $privateKeyX \n PublicX: $publicKeyX");
-
     return MapEntry(privateKeyX, publicKeyX);
   }
 

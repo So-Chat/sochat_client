@@ -2,9 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sochat_client/modules/keys/key_service.dart';
-import 'package:sochat_client/modules/media/media_service.dart';
-import 'package:sochat_client/modules/messages/message.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
 import 'package:sochat_client/so_ux/chat_controller.dart';
 
@@ -16,10 +13,11 @@ class InputField extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-
     final chatController = ref.watch(chatControllerProvider.notifier);
-    final selectedFiles = ref.watch(selectedMediaProvider);
-    final selectedChat = ref.watch(selectedChatProvider);
+
+    final chatControllerState = ref.watch(chatControllerProvider);
+    final selectedFiles = chatControllerState.selectedMedia;
+    final selectedChat = chatControllerState.selectedChat;
 
     return Container(
       decoration: BoxDecoration(
@@ -71,7 +69,7 @@ class InputField extends ConsumerWidget {
                         chatController.deleteMedia(selectedFiles[index]);
                         final newList = [...selectedFiles];
                         newList.removeAt(index);
-                        ref.read(selectedMediaProvider.notifier).state = newList;
+                        chatController.setSelectedChat(newList);
                         },
                           child: Row(
                             children: [

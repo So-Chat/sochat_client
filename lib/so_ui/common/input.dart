@@ -2,24 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
 
+void _emptyCallback(String text) {}
+
 class SoCommonInput extends ConsumerWidget {
 
-  TextStyle? textStyle;
+  final TextStyle? textStyle;
   final InputDecoration? decoration;
 
-  Border? border;
-  Color? color;
-  BorderRadius? borderRadius;
-  double? width;
-  double? height;
-  int? maxLength;
-  int? maxLines;
-  ValueChanged<String>? onChanged = (text) {};
+  final Border? border;
+  final Color? color;
+  final BorderRadius? borderRadius;
+  final double? width;
+  final double? height;
+  final int? maxLength;
+  final int? maxLines;
+  final ValueChanged<String>? onChanged;
 
-  TextEditingController? textEditingController;
+  final TextEditingController? textEditingController;
 
-  SoCommonInput({super.key, this.textStyle, this.decoration, this.border, this.color,
-    this.borderRadius, this.width, this.height, this.maxLength, this.maxLines, this.onChanged, this.textEditingController});
+  const SoCommonInput({super.key, this.textStyle, this.decoration, this.border, this.color,
+    this.borderRadius, this.width, this.height, this.maxLength, this.maxLines, this.onChanged = _emptyCallback, this.textEditingController});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

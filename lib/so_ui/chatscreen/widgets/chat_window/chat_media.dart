@@ -29,8 +29,7 @@ class ChatMediaState extends State<ChatMedia> {
           widget.mediaFile,
           widget.ref,
           aesKey: widget.ref
-              .read(selectedChatProvider.notifier)
-              .state!
+              .read(chatControllerProvider).selectedChat!
               .chatKeys
               .last
               .key,

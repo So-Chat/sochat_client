@@ -14,9 +14,8 @@ class KeysList extends ConsumerWidget  {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final keyService = ref.watch(keyServiceProvider);
     final keyServiceNotifier = ref.watch(keyServiceProvider.notifier);
-    final selectedKey = ref.watch(selectedProfileProvider);
+    final selectedKey = ref.watch(keyServiceProvider).selectedProfile;
 
     return Expanded(
       flex: 2,
@@ -74,7 +73,7 @@ class KeysList extends ConsumerWidget  {
                   itemCount: profiles.length,
                   itemBuilder: (context, index) {
                     final profile = profiles.entries.toList()[index];
-                    final isSelected = ref.watch(selectedProfileProvider) == index;
+                    final isSelected = ref.watch(keyServiceProvider).selectedProfile == index;
 
                     return SelectableButton(
                       size: 40,
@@ -82,7 +81,7 @@ class KeysList extends ConsumerWidget  {
                       "",
                       isSelected: isSelected,
                       onPressed: () {
-                        ref.read(selectedProfileProvider.notifier).state = index;
+                        ref.read(keyServiceProvider.notifier).setSelectedProfile(index);
                       },
 
                       menuItems: Menus.keysListContext(context, index, ref,  profile),

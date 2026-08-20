@@ -8,11 +8,12 @@ import 'package:sochat_client/modules/users/user.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
 
 class AvatarButton extends ConsumerWidget {
-  User? user;
+  final User? user;
+  final GlobalKey buttonKey;
 
-  AvatarButton({super.key, required this.user});
+  const AvatarButton({super.key, required this.user, required this.buttonKey});
 
-  final GlobalKey _buttonKey = GlobalKey();
+
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -20,14 +21,14 @@ class AvatarButton extends ConsumerWidget {
       width: 40,
       height: 30,
       child: SoButton(
-        anchorKey: _buttonKey,
+        anchorKey: buttonKey,
         width: 40,
         height: 30,
         color: Colors.white,
         alignment: Alignment.center,
         onPressed: () {
           final RenderBox box =
-              _buttonKey.currentContext!.findRenderObject() as RenderBox;
+              buttonKey.currentContext!.findRenderObject() as RenderBox;
 
           final Offset globalPosition = box.localToGlobal(Offset.zero);
           final Size size = box.size;
@@ -50,7 +51,7 @@ class AvatarButton extends ConsumerWidget {
               bottom: -10,
               child: CircleAvatar(
                 radius: 20,
-                child: Text((user != null ? (user!.nickname ?? " ") : "  ")[0]),
+                child: Text((user != null ? (user!.nickname) : "  ")[0]),
               ),
             ),
           ],

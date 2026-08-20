@@ -14,7 +14,7 @@ class ServerList extends ConsumerWidget  {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedServer = ref.watch(selectedServerProvider);
+    final selectedServer = ref.watch(keyServiceProvider).selectedServer;
 
     return Expanded(
       flex: 2,
@@ -68,7 +68,7 @@ class ServerList extends ConsumerWidget  {
                   itemCount: servers.length,
                   itemBuilder: (context, index) {
                     final server = servers.entries.toList()[index];
-                    final isSelected = ref.watch(selectedServerProvider) == index;
+                    final isSelected = ref.watch(keyServiceProvider).selectedServer == index;
 
                     return SelectableButton(
                       size: 40,
@@ -76,7 +76,7 @@ class ServerList extends ConsumerWidget  {
                       server.value,
                       isSelected: isSelected,
                       onPressed: () {
-                        ref.read(selectedServerProvider.notifier).state = index;
+                        ref.read(keyServiceProvider.notifier).setSelectedServer(index);
                       },
                       menuItems: Menus.serversListContext(context, index, ref, server),
                       onSecondaryTap: (details) {

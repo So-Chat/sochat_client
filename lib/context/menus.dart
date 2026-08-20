@@ -1,6 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sochat_client/extenstions/so_exception.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:sochat_client/modules/chats/chat.dart';
 import 'package:sochat_client/modules/chats/chat_role.dart';
@@ -15,14 +15,12 @@ import 'package:sochat_client/context/context_manager.dart';
 import 'package:sochat_client/modules/friends/friends_service.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
 import 'package:sochat_client/modules/users/user_service.dart';
-import 'package:sochat_client/so_ui/chatscreen/chat_screen.dart';
 import 'package:sochat_client/so_ui/chatscreen/widgets/lists/friend_list/friend_item.dart';
 import 'package:sochat_client/so_ui/chatscreen/widgets/search/search_window.dart';
 import 'package:sochat_client/so_ui/common/input.dart';
 import 'package:sochat_client/context/context_menu_button.dart';
 import 'package:sochat_client/context/context_window.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
-import 'package:sochat_client/so_ui/common/so_exception.dart';
 import 'package:sochat_client/so_ui/loginscreen/widgets/settings_button.dart';
 import 'package:sochat_client/so_ux/chat_controller.dart';
 import 'package:sochat_client/so_ux/login_controller.dart';
@@ -46,9 +44,9 @@ class Menus {
     WidgetRef ref,
     Chat chat,
   ) {
-    final userService = ref.read(userServiceProvider.notifier);
+    final userService = ref.read(userServiceProvider);
     final chatService = ref.read(chatsServiceProvider.notifier);
-    final currentUser = ref.read(currentUserProvider);
+    final currentUser = ref.read(authServiceProvider).currentUser;
 
     if (chat.type == ChatType.PRIVATE) {
       return () {
@@ -91,7 +89,7 @@ class Menus {
     final friendshipService = ref.read(friendsServiceProvider.notifier);
     final friendships = ref.read(friendsServiceProvider).friendships;
 
-    final currentUser = ref.watch(currentUserProvider);
+    final currentUser = ref.watch(authServiceProvider).currentUser;
 
     final friendship = friendships[user.username];
     final contextManager = ref.read(contextManagerProvider);
@@ -521,7 +519,7 @@ class Menus {
 
       ChatService chatService = ref.read(chatsServiceProvider.notifier);
 
-      await ref.read(chatControllerProvider.notifier).getFriendsList();
+      await ref.read(chatControllerProvider.notifier).loadFriendsList();
       final friendsList = ref.read(friendsListProvider);
 
       final selectedButtons = ValueNotifier<List<int>>([]);
@@ -713,11 +711,11 @@ class Menus {
     WidgetRef ref,
   ) {
     return () async {
-      ChatService chatService = ref.read(chatsServiceProvider.notifier);
+      ChatController chatController = ref.read(chatControllerProvider.notifier);
 
-      await ref.read(chatControllerProvider.notifier).getFriendsList();
+      await ref.read(chatControllerProvider.notifier).loadFriendsList();
       final friendsList = ref.read(friendsListProvider);
-      final selectedChat = ref.read(selectedChatProvider.notifier).state;
+      final selectedChat = ref.read(chatControllerProvider).selectedChat;
       final selectedButtons = ValueNotifier<List<int>>([]);
 
       showContextWindow(
@@ -811,7 +809,7 @@ class Menus {
                 }
 
                 for (int userId in userIds) {
-                  await chatService.addParticipant(userId, selectedChat!);
+                  await chatController.addParticipant(userId, selectedChat!);
                 }
               },
               child: Padding(
@@ -833,7 +831,7 @@ class Menus {
     int? lastMessageId,
   ) {
     final chatService = ref.read(chatsServiceProvider.notifier);
-    final currentUser = ref.read(currentUserProvider);
+    final currentUser = ref.read(authServiceProvider).currentUser;
     final blockedList = ref.read(blockedListProvider);
     final chatController = ref.read(chatControllerProvider.notifier);
 
@@ -1023,14 +1021,14 @@ class Menus {
     WidgetRef ref,
     User user,
   ) {
-    final loginController = ref.read(loginControllerProvider.notifier);
+    final loginController = ref.read(loginControllerProvider);
     return [
       ContextMenuButton(
         text: "${user.nickname} (${user.username})",
         leading: CircleAvatar(radius: 20, child: Text(user.nickname[0])),
         onTap: () {
-          ref.read(activeList.notifier).state = 2;
-          ref.read(selectedSettingsOptionProvider.notifier).state = 1;
+          ref.read(chatControllerProvider.notifier).setActiveList(2);
+          ref.read(settingsControllerProvider.notifier).setSelectedOption(1);
         },
         description: user.getDesc(),
       ),

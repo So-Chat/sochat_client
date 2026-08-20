@@ -25,9 +25,10 @@ class ChatList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
 
     final chatController = ref.watch(chatControllerProvider.notifier);
-    final currentUser = ref.watch(currentUserProvider);
+    final currentUser = ref.watch(authServiceProvider).currentUser;
 
     final sortedChats = ref.watch(sortedChatsProvider);
+    final messageMap = ref.watch(chatMessagesProvider);
 
     return BasePanel(
       borderColor: borderColor,
@@ -43,7 +44,6 @@ class ChatList extends ConsumerWidget {
             child: ListView(
               children: [
                 ...sortedChats.map((e) {
-                  final messageMap = ref.read(chatMessagesProvider);
                   final messages = messageMap[e.id] ?? [];
                   final hasMessages = messages.isNotEmpty;
                   final lastMessage = hasMessages ? messages.first : null;

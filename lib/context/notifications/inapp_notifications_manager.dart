@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:sochat_client/so_ui/notifications/so_notification.dart';
 
-final inAppNotificationsManagerProvider = StateNotifierProvider<InAppNotificationsManager, InAppNotificationsManagerState>(
-      (ref) => InAppNotificationsManager(ref),);
+final inAppNotificationsManagerProvider = NotifierProvider<InAppNotificationsManager, InAppNotificationsManagerState>(
+  InAppNotificationsManager.new,
+);
 
 class InAppNotificationsManagerState {
 
@@ -21,17 +21,14 @@ class InAppNotificationsManagerState {
   }
 }
 
-class InAppNotificationsManager extends StateNotifier<InAppNotificationsManagerState> {
-
-
-  InAppNotificationsManager(this._ref)
-      : super(InAppNotificationsManagerState(notificationList: []));
-
-  final Ref _ref;
-
+class InAppNotificationsManager extends Notifier<InAppNotificationsManagerState> {
   List<SoNotification> get notificationList =>
       state.notificationList;
 
+  @override
+  InAppNotificationsManagerState build() {
+    return InAppNotificationsManagerState(notificationList: []);
+  }
 
   void remove(int index) {
     final newList = List<SoNotification>.from(notificationList);

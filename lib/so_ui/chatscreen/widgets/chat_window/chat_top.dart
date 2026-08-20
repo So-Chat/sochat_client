@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/friends/friends_service.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
+import 'package:sochat_client/so_ux/call_controller.dart';
 import 'package:sochat_client/so_ux/chat_controller.dart';
 
 class ChatTop extends ConsumerWidget {
@@ -16,17 +17,21 @@ class ChatTop extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final chatController = ref.read(chatControllerProvider.notifier);
+    final chatController = ref.read(chatControllerProvider);
 
     final chatList = ref.watch(chatsListProvider);
 
-    final selectedChat = ref.watch(selectedChatProvider);
+    final selectedChat = chatController.selectedChat;
 
     final friendsList = ref.watch(friendsListProvider);
+    final callController = ref.watch(callControllerProvider.notifier);
+    final selectedChatFromList = chatList.firstWhere(
+      (chat) => chat.id == selectedChat!.id,
+    );
 
-    final selectedChatFromList = chatList.firstWhere((chat) => chat.id == selectedChat!.id);
-
-    final otherUser = selectedChatFromList.participants.firstWhere((participant) => participant.user.id != ref.read(currentUserProvider)!.id);
+    final otherUser = selectedChatFromList.participants.firstWhere(
+      (participant) => participant.user.id != ref.read(authServiceProvider).currentUser!.id,
+    );
     final bool isFriends = friendsList.any((u) => u.id == otherUser.user.id);
 
     return Container(
@@ -55,7 +60,7 @@ class ChatTop extends ConsumerWidget {
                   width: 30,
                   color: Colors.transparent,
                   onPressed: () {
-                    ref.read(selectedChatProvider.notifier).state = null;
+                    ref.read(chatControllerProvider.notifier).setSelectedChatChat(null);
                   },
                   child: Icon(
                     Icons.arrow_back,
@@ -65,36 +70,35 @@ class ChatTop extends ConsumerWidget {
                 ),
                 SoButton(
                   onPressed: selectedChatFromList.type == ChatType.PRIVATE
-                    ? Menus.userProfile(context, ref, otherUser.user)
-                    : Menus.openProfile(context, ref, selectedChatFromList),
-                  child: Padding(padding: EdgeInsets.symmetric(horizontal: 5), child: Row(
-                    spacing: 10,
-                  children: [
-                    CircleAvatar(
-                      radius: 20,
-                      child: Text(
-                        selectedChatFromList.title[0],
-                      ),
+                      ? Menus.userProfile(context, ref, otherUser.user)
+                      : Menus.openProfile(context, ref, selectedChatFromList),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 5),
+                    child: Row(
+                      spacing: 10,
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          child: Text(selectedChatFromList.title[0]),
+                        ),
+                        Text(selectedChatFromList.title),
+                        selectedChatFromList.type == ChatType.GROUP_SECURE
+                            ? Icon(
+                                Icons.enhanced_encryption,
+                                color: context.colors.textSecondary,
+                                size: 20,
+                              )
+                            : selectedChatFromList.type ==
+                                  ChatType.GROUP_INSECURE
+                            ? Icon(
+                                Icons.no_encryption,
+                                color: context.colors.textSecondary,
+                                size: 20,
+                              )
+                            : Container(),
+                      ],
                     ),
-                    Text(
-                      selectedChatFromList.title,
-                    ),
-                    selectedChatFromList.type == ChatType.GROUP_SECURE
-                        ? Icon(
-                            Icons.enhanced_encryption,
-                            color: context.colors.textSecondary,
-                            size: 20,
-                          )
-                        : selectedChatFromList.type ==
-                              ChatType.GROUP_INSECURE
-                        ? Icon(
-                            Icons.no_encryption,
-                            color: context.colors.textSecondary,
-                            size: 20,
-                          )
-                        : Container(),
-                  ],
-                ))
+                  ),
                 ),
               ],
             ),
@@ -112,39 +116,43 @@ class ChatTop extends ConsumerWidget {
                         child: Icon(Icons.person_add),
                       )
                     : Container(),
-                    if (selectedChatFromList.type == ChatType.PRIVATE && isFriends) Row(
-                      children: [
-                        SoButton(
-                          height: 40,
-                          width: 40,
-                          onPressed: () {
-                            {
-                              if (isFriends) {
-                                ref.read(isInCallProvider.notifier).state = true;
-                              }
+                if (selectedChatFromList.type == ChatType.PRIVATE && isFriends)
+                  Row(
+                    children: [
+                      SoButton(
+                        height: 40,
+                        width: 40,
+                        onPressed: () {
+                          {
+                            if (isFriends) {
+                              callController.callStart();
                             }
-                          },
-                          color: selectedChat!.callState == CallState.INCOMING
-                              ? context.colors.positive
-                              : selectedChat.callState == CallState.IN_CALL ? context.colors.primary
-                              : selectedChat.callState == CallState.CALLING ? context.colors.caution
-                              : context.colors.foreground,
-                          child: Icon(Icons.call),
-                        ),
-                        SoButton(
-                          height: 40,
-                          width: 40,
-                          onPressed: () {
-                            {
-                              ref.read(selectedChatProvider.notifier).state = null;
+                          }
+                        },
+                        color: selectedChat!.callState == CallState.INCOMING
+                            ? context.colors.positive
+                            : selectedChat.callState == CallState.IN_CALL
+                            ? context.colors.primary
+                            : selectedChat.callState == CallState.CALLING
+                            ? context.colors.caution
+                            : context.colors.foreground,
+                        child: Icon(Icons.call),
+                      ),
+                      SoButton(
+                        height: 40,
+                        width: 40,
+                        onPressed: () {
+                          {
+                            if (isFriends) {
+                              callController.callStart(video: true);
                             }
-                          },
-                          color: context.colors.foreground,
-                          child: Icon(Icons.video_call),
-                        ),
-                      ],
-                    )
-
+                          }
+                        },
+                        color: context.colors.foreground,
+                        child: Icon(Icons.video_call),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ],

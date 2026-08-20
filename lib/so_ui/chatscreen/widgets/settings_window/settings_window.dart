@@ -36,15 +36,15 @@ class SettingsWindowState extends ConsumerState<SettingsWindow>{
 
   @override
   Widget build(BuildContext context) {
-    final selectedOption = ref.watch(selectedSettingsOptionProvider);
+    final selectedOption = ref.watch(settingsControllerProvider).selectedOption;
     final settingsController = ref.read(settingsControllerProvider.notifier);
 
     return BasePanel(
         borderRadius: widget.borderRadius!,
         borderColor: widget.borderColor,
         backgroundColor: widget.backgroundColor ?? context.colors.foreground,
-        child: _buildOptions(selectedOption, settingsController),
         isExpanded: widget.isExpanded,
+        child: _buildOptions(selectedOption, settingsController),
     );
 
 

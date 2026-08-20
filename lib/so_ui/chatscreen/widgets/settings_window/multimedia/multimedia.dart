@@ -47,9 +47,7 @@ class _MultimediaSettingsState extends ConsumerState<MultimediaSettings> {
           audioOutputDevices.add(d);
         } else if (d.kind == "videoinput") {
           videoInputDevices.add(d);
-          print(d.label);
         }
-        print("${d.kind} ${d.label}");
       }
     });
   }

@@ -29,12 +29,12 @@ class ChatItem extends ConsumerWidget {
   final String time;
   final bool? isRead;
 
-  int unReadMessageCount;
+  final int unReadMessageCount;
 
   final String description;
   final GestureTapCallback? onPressed;
 
-  int clientId;
+  final int clientId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

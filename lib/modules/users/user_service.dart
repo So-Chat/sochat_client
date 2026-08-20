@@ -2,30 +2,22 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:sochat_client/modules/users/user.dart';
 import 'package:sochat_client/modules/websocket/message_packet.dart';
 import 'package:sochat_client/modules/websocket/web_socket_service.dart';
 
 import '../common/auth_service.dart';
-import '../keys/key_service.dart';
 
-final userServiceProvider = StateNotifierProvider<UserService, UserState>(
+final userServiceProvider = Provider<UserService>(
   (ref) => UserService(
     ref.read(webSocketProvider.future),
-    ref.read(keyServiceProvider.notifier),
-    ref.read(authServiceProvider),
-    ref.read(currentUserProvider),
+    ref.read(authServiceProvider).currentUser,
     ref,
   ),
 );
 
-class UserState {}
-
-class UserService extends StateNotifier<UserState> {
+class UserService{
   late final WebSocketService _webSocket;
-  final KeyService _keyService;
-  final AuthService _authService;
   final User? currentUser;
 
   final Ref ref;
@@ -35,11 +27,14 @@ class UserService extends StateNotifier<UserState> {
 
   UserService(
     Future<WebSocketService> webSocketFuture,
-    this._keyService,
-    this._authService,
     this.currentUser,
     this.ref,
-  ) : super(UserState()) {
+  ) {
+
+    ref.onDispose(() {
+      _subscription?.cancel();
+    });
+
     webSocketFuture
         .then((ws) {
           _webSocket = ws;
@@ -56,11 +51,6 @@ class UserService extends StateNotifier<UserState> {
     _subscription = _webSocket.usersMessages.listen((message) {});
   }
 
-  @override
-  void dispose() {
-    _subscription?.cancel();
-    super.dispose();
-  }
 
   Future<User> getUser({
     String? username,
@@ -128,11 +118,11 @@ class UserService extends StateNotifier<UserState> {
 
     MessagePacket request = await _webSocket.sendRequest(message);
     if (request.payload["success"] == true) {
-      ref.read(currentUserProvider.notifier).state = currentUser!.copyWith(
+      ref.read(authServiceProvider.notifier).setCurrentUser(currentUser!.copyWith(
         username: request.payload["username"],
         nickname: request.payload["nickname"],
         description: request.payload["description"],
-      );
+      ));
     }
   }
 

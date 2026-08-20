@@ -45,7 +45,7 @@ void main() async {
     debugPrintRebuildDirtyWidgets = false;
 
     await trayManager.setIcon(
-      Platform.isWindows ? 'assets/icon/1024-icon.png' : 'assets/icon/1024-icon.png',
+      'assets/icon/icon-nobg.ico',
     );
     await trayManager.setToolTip('SoChat');
 
@@ -162,7 +162,7 @@ class SoChat extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colors = ref.watch(settingsControllerProvider.notifier).getTheme(ref.watch(selectedThemeProvider))
+    final colors = ref.watch(settingsControllerProvider.notifier).getTheme(ref.watch(settingsControllerProvider).selectedTheme)
         .whereType<AppColors>()
         .first;
 
@@ -186,7 +186,7 @@ class SoChat extends ConsumerWidget {
                 );
               },
               theme: ThemeData(
-                extensions: ref.watch(settingsControllerProvider.notifier).getTheme(ref.watch(selectedThemeProvider)),
+                extensions: ref.watch(settingsControllerProvider.notifier).getTheme(ref.watch(settingsControllerProvider).selectedTheme),
                 useMaterial3: false,
                 fontFamily: 'Inter',
 
@@ -325,20 +325,16 @@ class _SoDesignPageState extends ConsumerState<SoDesignPage> with TrayListener {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final notificationManager =
-      notificationsManager = ref.read(inAppNotificationsManagerProvider.notifier);
       trayManager.addListener(this);
     });
 
-    ref.read(selectedProfileProvider);
-    ref.read(selectedServerProvider);
     ref.read(keyServiceProvider);
     ref.read(keyServiceProvider.notifier);
 
     keyService = ref.read(keyServiceProvider.notifier);
 
 
-    localStorageService = ref.read(localStorageServiceProvider.notifier);
+    localStorageService = ref.read(localStorageServiceProvider);
     loadSettings();
 
     if (!kDebugMode) {

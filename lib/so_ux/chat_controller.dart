@@ -1,6 +1,6 @@
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:sochat_client/modules/chats/chat.dart';
 import 'package:sochat_client/modules/chats/chat_service.dart';
 import 'package:sochat_client/modules/chats/chat_type.dart';
@@ -12,48 +12,26 @@ import 'package:sochat_client/modules/media/media_service.dart';
 import 'package:sochat_client/modules/messages/message.dart';
 import 'package:sochat_client/modules/messages/message_service.dart';
 import 'package:sochat_client/modules/users/user.dart';
-import 'package:sochat_client/modules/users/user_service.dart';
 
 import '../modules/websocket/web_socket_service.dart';
 
-final chatControllerProvider =
-    StateNotifierProvider<ChatController, ChatControllerState>((ref) {
-      final chatService = ref.read(chatsServiceProvider.notifier);
-      final authService = ref.read(authServiceProvider);
-      final messageService = ref.read(messageServiceProvider.notifier);
-      final friendsService = ref.read(friendsServiceProvider.notifier);
-      final mediaService = ref.read(mediaServiceProvider);
-      final keyService = ref.read(keyServiceProvider.notifier);
-
-      return ChatController(
-        chatService,
-        authService,
-        messageService,
-        friendsService,
-        mediaService,
-        keyService,
-        ref,
-      );
-    });
-
-final selectedChatProvider = StateProvider<Chat?>((ref) => null);
-final isInCallProvider = StateProvider<bool>((ref) => false);
-final chatMessagesProvider = StateProvider<Map<int, List<Message>>>(
-  (ref) => {},
+final chatControllerProvider = NotifierProvider<ChatController, ChatState>(
+  ChatController.new,
 );
-
-final selectedMediaProvider = StateProvider<List<Media>>((ref) => []);
-
-final mediaCache = StateProvider<List<Media>>((ref) => []);
 
 final chatsListProvider = Provider<List<Chat>>((ref) {
   final chats = ref.watch(chatsServiceProvider).chatList;
   return chats;
 });
 
+final chatMessagesProvider = Provider<Map<int, List<Message>>>((ref) {
+  final messages = ref.watch(messageServiceProvider).messageMap;
+  return messages;
+});
+
 final sortedChatsProvider = Provider<List<Chat>>((ref) {
   final chats = ref.watch(chatsListProvider);
-  final messageMap = ref.watch(chatMessagesProvider);
+  final messageMap = ref.watch(messageServiceProvider.notifier).messageMap;
 
   final sorted = [...chats]
     ..sort((a, b) {
@@ -74,43 +52,88 @@ final sortedChatsProvider = Provider<List<Chat>>((ref) {
   return sorted;
 });
 
-class ChatControllerState {}
+const _unset = Object();
 
-class ChatController extends StateNotifier<ChatControllerState> {
-  final ChatService _chatService;
-  final MessageService _messageService;
-  final FriendsService _friendsService;
-  final AuthService _authService;
-  final MediaService _mediaService;
-  final KeyService _keyService;
-  Ref ref;
+class ChatState {
+  final Chat? selectedChat;
+  final List<Media> selectedMedia;
+  final List<Media> mediaCache;
 
-  ChatController(
-    this._chatService,
-    this._authService,
-    this._messageService,
-    this._friendsService,
-    this._mediaService,
-    this._keyService,
-    this.ref,
-  ) : super(ChatControllerState());
+  final int activeList;
 
-  Future<void> getFriendsList() async {
+  ChatState({
+    this.selectedChat,
+    this.selectedMedia = const [],
+    this.mediaCache = const [],
+    this.activeList = 0
+  });
+
+  ChatState copyWith({
+    Object? selectedChat = _unset,
+    List<Media>? selectedMedia,
+    List<Media>? mediaCache,
+    int? activeList,
+  }) {
+    return ChatState(
+      selectedChat: selectedChat == _unset
+          ? this.selectedChat
+          : selectedChat as Chat?,
+      selectedMedia: selectedMedia ?? this.selectedMedia,
+      mediaCache: mediaCache ?? this.mediaCache,
+      activeList: activeList ?? this.activeList,
+    );
+  }
+}
+
+class ChatController extends Notifier<ChatState> {
+  late final ChatService _chatService;
+  late final MessageService _messageService;
+  late final FriendsService _friendsService;
+  late final MediaService _mediaService;
+  late final KeyService _keyService;
+
+  Chat? get selectedChat => state.selectedChat;
+  List<Media> get selectedMedia => state.selectedMedia;
+  List<Media> get mediaCache => state.mediaCache;
+
+  @override
+  ChatState build() {
+    _chatService = ref.read(chatsServiceProvider.notifier);
+    _messageService = ref.read(messageServiceProvider.notifier);
+    _friendsService = ref.read(friendsServiceProvider.notifier);
+    _mediaService = ref.read(mediaServiceProvider);
+    _keyService = ref.read(keyServiceProvider.notifier);
+    return ChatState();
+  }
+
+  void setSelectedChatChat(Chat? chat) {
+    state = state.copyWith(selectedChat: chat);
+  }
+
+  void setSelectedChat(List<Media>? media) {
+    state = state.copyWith(selectedMedia: media);
+  }
+
+  void setActiveList(int activeList) {
+    state = state.copyWith(activeList: activeList);
+  }
+
+  Future<void> loadFriendsList() async {
     await ref.read(webSocketProvider.future);
     await _friendsService.getRelativesList();
   }
 
-  Future<void> getChatList() async {
+  Future<void> loadChatList() async {
     await ref.read(webSocketProvider.future);
     _chatService.getChatList();
   }
 
   Future<void> loadRecentMessages() async {
-    final selectedChat = ref.read(selectedChatProvider.notifier).state;
+    final selectedChat = state.selectedChat;
     if (selectedChat != null) {
       final chatMessages = ref
-          .read(chatMessagesProvider.notifier)
-          .state[selectedChat.id];
+          .read(messageServiceProvider)
+          .messageMap[selectedChat.id];
 
       await _messageService.getRecentMessages(
         selectedChat,
@@ -121,31 +144,29 @@ class ChatController extends StateNotifier<ChatControllerState> {
   }
 
   Future<void> loadFriendList() async {
-    await ref.read(chatControllerProvider.notifier).getFriendsList();
+    await loadFriendsList();
   }
 
   Future<void> openChat(Chat chat) async {
-    if (ref.read(selectedChatProvider) != null &&
-        ref.read(selectedChatProvider)!.id == chat.id &&
+    if (selectedChat != null &&
+        selectedChat!.id == chat.id &&
         chat.participants.length > 1) {
       return;
     }
 
-    final selectedChat = await _chatService.getChatById(chat.id);
-    await _messageService.getRecentMessages(selectedChat, 0);
+    final selChat = await _chatService.getChatById(chat.id);
+    await _messageService.getRecentMessages(chat, 0);
 
-    ref.read(selectedChatProvider.notifier).state = selectedChat;
+    state = state.copyWith(selectedChat: selChat);
   }
 
   Future<void> sendMessage(String content) async {
-    final selectedMedia = ref.read(selectedMediaProvider);
+    final selectedMedia = state.selectedMedia;
 
     if (["", " "].any((c) => c == content) && selectedMedia.isEmpty ||
         !selectedMedia.every((m) => m.isLoaded)) {
       return;
     }
-
-    final selectedChat = ref.read(selectedChatProvider.notifier).state;
 
     await _messageService.sendMessage(
       content,
@@ -153,46 +174,42 @@ class ChatController extends StateNotifier<ChatControllerState> {
       selectedMedia,
       selectedChat!,
     );
-    ref.read(selectedMediaProvider.notifier).state = [];
+    state = state.copyWith(selectedMedia: []);
   }
 
   Future<void> editMessage(String content, int id) async {
-    final selectedMedia = ref.read(selectedMediaProvider);
+    final selectedMedia = state.selectedMedia;
 
     if (["", " "].any((c) => c == content) && selectedMedia.isEmpty ||
         !selectedMedia.every((m) => m.isLoaded)) {
       return;
     }
 
-    final selectedChat = ref.read(selectedChatProvider.notifier).state;
+    final selectedChat = state.selectedChat;
 
     await _messageService.editMessage(content, id, selectedChat!);
-    ref.read(selectedMediaProvider.notifier).state = [];
+    state = state.copyWith(selectedMedia: []);
   }
 
   Future<void> requestMedia() async {
     // Get files, converting them to my type for Media that contains ids
     final files = await _mediaService.getFiles();
     final mediaFiles = files.map((f) => Media(file: f)).toList();
-    ref.read(selectedMediaProvider.notifier).state = mediaFiles;
+
+    state = state.copyWith(selectedMedia: mediaFiles);
 
     // Upload media
     final ip = _keyService.servers.entries
-        .toList()[ref.read(selectedServerProvider)]
+        .toList()[ref.read(keyServiceProvider).selectedServer]
         .value;
     for (var mediaFile in mediaFiles) {
       _mediaService.uploadMedia(
         ip,
         mediaFile,
-        aesKey: ref
-            .read(selectedChatProvider.notifier)
-            .state
-            ?.chatKeys
-            .last
-            .key,
+        aesKey: selectedChat?.chatKeys.last.key,
       );
     }
-    ref.read(selectedMediaProvider.notifier).state = mediaFiles;
+    state = state.copyWith(selectedMedia: mediaFiles);
   }
 
   Future<void> setLastReadMessage(int id, int chatId) async {
@@ -208,13 +225,13 @@ class ChatController extends StateNotifier<ChatControllerState> {
     if (outputFile == null) return;
 
     final ip = _keyService.servers.entries
-        .toList()[ref.read(selectedServerProvider)]
+        .toList()[ref.read(keyServiceProvider).selectedServer]
         .value;
     _mediaService.downloadMedia(
       ip,
       media,
       outputFile,
-      aesKey: ref.read(selectedChatProvider.notifier).state?.chatKeys.last.key,
+      aesKey: selectedChat?.chatKeys.last.key,
     );
   }
 
@@ -224,22 +241,30 @@ class ChatController extends StateNotifier<ChatControllerState> {
 
   Future<void> deleteMedia(Media media) async {
     final ip = _keyService.servers.entries
-        .toList()[ref.read(selectedServerProvider)]
+        .toList()[ref.read(keyServiceProvider).selectedServer]
         .value;
     _mediaService.deleteMedia(ip, media);
   }
 
   void startEditing(Message message) {
-    final selectedChat = ref.read(selectedChatProvider);
     if (selectedChat != null) {
-      updateChat(selectedChat.copyWith(editMessage: message, callState: selectedChat.callState));
+      updateChat(
+        selectedChat!.copyWith(
+          editMessage: message,
+          callState: selectedChat!.callState,
+        ),
+      );
     }
   }
 
   void stopEditing() {
-    final selectedChat = ref.read(selectedChatProvider);
     if (selectedChat != null) {
-      updateChat(selectedChat.copyWith(editMessage: null, callState: selectedChat.callState));
+      updateChat(
+        selectedChat!.copyWith(
+          editMessage: null,
+          callState: selectedChat!.callState,
+        ),
+      );
     }
   }
 
@@ -254,18 +279,17 @@ class ChatController extends StateNotifier<ChatControllerState> {
       chat.copyWith(
         editMessage: editMessage,
         uncompletedContent: uncompletedContent,
-        callState: chat.callState
+        callState: chat.callState,
       ),
     );
   }
 
   void updateChat(Chat chat) {
     ref.read(chatsServiceProvider.notifier).addUpdate(chat);
-    final selectedChat = ref.read(selectedChatProvider);
 
     if (selectedChat == null) return;
-    if (selectedChat.id == chat.id) {
-      ref.read(selectedChatProvider.notifier).state = chat;
+    if (selectedChat?.id == chat.id) {
+      state = state.copyWith(selectedChat: chat);
     }
   }
 
@@ -284,6 +308,131 @@ class ChatController extends StateNotifier<ChatControllerState> {
 
     chat ??= await _chatService.createChat([user.id], ChatType.PRIVATE, null);
 
-    ref.read(selectedChatProvider.notifier).state = chat;
+    state = state.copyWith(selectedChat: chat);
+  }
+
+  // Checks chat state through ref.listen if it's current every rebuild in chat_window.dart
+  void syncSelectedChat() {
+    final chats = ref.read(chatsListProvider);
+
+    if (selectedChat != null) {
+      if (!chats.any((chat) => chat.id == selectedChat?.id)) {
+        setSelectedChatChat(null);
+      } else {
+        final selectedChatFromList = chats.firstWhere(
+          (chat) => chat.id == selectedChat?.id,
+        );
+        if (selectedChat != selectedChatFromList) {
+          state = state.copyWith(selectedChat: selectedChatFromList);
+        }
+      }
+    }
+  }
+
+  void onChatChanged(
+    Chat? previous,
+    Chat? next,
+    TextEditingController messageInput,
+  ) {
+    if (previous == null) return;
+    if (next?.id == previous.id) return;
+
+    if (previous.editMessage != null) {
+      exitChat(previous, messageInput.text, previous.uncompletedContent);
+    } else {
+      exitChat(previous, null, messageInput.text);
+    }
+
+    if (next == null) return;
+
+    if (next.editMessage != null) {
+      messageInput.text = next.editMessage!.content;
+    } else {
+      messageInput.text = next.uncompletedContent ?? "";
+    }
+  }
+
+  void onMessageMapChange(
+    Map<int, List<Message>>? prev,
+    Map<int, List<Message>> next,
+  ) async {
+    final currentUser = ref.read(authServiceProvider).currentUser!;
+
+    for (final entry in next.entries) {
+      final chatId = entry.key;
+
+      if (chatId == selectedChat?.id) continue;
+
+      final previousMessages = prev?[chatId] ?? const [];
+      final currentMessages = entry.value;
+
+      if (identical(previousMessages, currentMessages)) {
+        continue;
+      }
+
+      final previousIds = previousMessages.map((m) => m.id).toSet();
+
+      final chat = await _chatService.getChatById(chatId);
+
+      final newMessages = currentMessages
+          .where((m) => !previousIds.contains(m.id))
+          .toList();
+
+      if (newMessages.isEmpty) continue;
+    }
+
+    /*if (ref.read(selectedChatProvider) != null && ref.read(selectedChatProvider)!.id != message.chatId){
+      _notificationsService.show(message.id, "${message.sender.nickname} : ${ref.read(currentUserProvider)!.nickname}", message.content);
+    }
+
+    final messages = messageMap[e.id] ?? [];
+    final hasMessages = messages.isNotEmpty;
+    final lastMessage = hasMessages ? messages.first : null;
+
+    final isCurrentUser = lastMessage != null &&
+        currentUser!.id == lastMessage.sender.id;
+
+    final isRead = lastMessage != null
+        ? e.participants.any((p) =>
+    p.lastReadMessageId >= lastMessage.id &&
+        p.user.id == currentUser!.id)
+        : null;
+
+    final unReadMessageCount = messages
+        .where((m) =>
+    m.id > lastReadId &&
+        m.sender.id != currentUser!.id)
+        .length;
+    */
+  }
+
+  Future<void> addParticipant(int userId, Chat chat) async {
+    final chatList = ref.read(chatsListProvider);
+    final newChat = await _chatService.addParticipantToChat(userId, chat);
+
+    if (selectedChat != null && selectedChat?.id == newChat.id) {
+      if (selectedChat?.id == newChat.id) {
+        state = state.copyWith(selectedChat: newChat);
+      } else if (selectedChat?.id == chat.id) {
+        final updatedChat = chatList.firstWhere((c) => c.id == chat.id);
+        state = state.copyWith(selectedChat: updatedChat);
+      }
+    }
+  }
+
+  void updateParticipantLastRead(
+    int chatId,
+    int userId,
+    int lastMessageId,
+  ) async {
+    Chat updatedChat = _chatService.updateParticipantLastReadInChat(
+      chatId,
+      userId,
+      lastMessageId,
+    );
+
+    if (selectedChat != null && selectedChat?.id == chatId) {
+      state = state.copyWith(selectedChat: updatedChat);
+    }
   }
 }

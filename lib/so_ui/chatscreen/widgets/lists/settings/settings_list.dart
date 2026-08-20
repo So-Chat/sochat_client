@@ -19,7 +19,7 @@ class SettingsList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final loginController = ref.read(loginControllerProvider.notifier);
+    final loginController = ref.read(loginControllerProvider);
 
     return BasePanel(
       borderColor: borderColor,
@@ -32,10 +32,10 @@ class SettingsList extends ConsumerWidget {
         children: [
           Column(
             children: [
-              SettingsItem(title: "Account", trailing: Icon(Icons.person, size: 30,), onPressed: () { ref.read(selectedSettingsOptionProvider.notifier).state = 1; }),
-              SettingsItem(title: "Notifications", trailing: Icon(Icons.notifications, size: 30), onPressed: () { ref.read(selectedSettingsOptionProvider.notifier).state = 2; }),
-              SettingsItem(title: "Appearance", trailing: Icon(Icons.palette, size: 30), onPressed: () { ref.read(selectedSettingsOptionProvider.notifier).state = 3; }),
-              SettingsItem(title: "Multimedia", trailing: Icon(Icons.phone, size: 30), onPressed: () { ref.read(selectedSettingsOptionProvider.notifier).state = 4; }),
+              SettingsItem(title: "Account", trailing: Icon(Icons.person, size: 30,), onPressed: () { ref.read(settingsControllerProvider.notifier).setSelectedOption(1); }),
+              SettingsItem(title: "Notifications", trailing: Icon(Icons.notifications, size: 30), onPressed: () { ref.read(settingsControllerProvider.notifier).setSelectedOption(2); }),
+              SettingsItem(title: "Appearance", trailing: Icon(Icons.palette, size: 30), onPressed: () { ref.read(settingsControllerProvider.notifier).setSelectedOption(3); }),
+              SettingsItem(title: "Multimedia", trailing: Icon(Icons.phone, size: 30), onPressed: () { ref.read(settingsControllerProvider.notifier).setSelectedOption(4); }),
             ],
           ),
           SettingsItem(title: "Log-out", trailing: Icon(Icons.logout, size: 30), onPressed: () { loginController.logout(context); }),

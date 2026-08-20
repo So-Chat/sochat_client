@@ -8,19 +8,18 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
-import 'package:sochat_client/context/notifications/inapp_notifications_manager.dart';
+import 'package:sochat_client/modules/calls/call_event.dart';
+import 'package:sochat_client/modules/calls/call_media_state.dart';
 import 'package:sochat_client/modules/calls/call_state.dart';
 import 'package:sochat_client/modules/calls/turn_credentials.dart';
 import 'package:sochat_client/modules/chats/chat.dart';
 import 'package:sochat_client/modules/chats/chat_service.dart';
 import 'package:sochat_client/modules/media_capture/capture_service.dart';
-import 'package:sochat_client/modules/notifications/notifications_service.dart';
+import 'package:sochat_client/modules/users/user_service.dart';
 import 'package:sochat_client/modules/websocket/message_packet.dart';
 import 'package:sochat_client/modules/websocket/web_socket_service.dart';
-import 'package:sochat_client/so_ui/notifications/so_notification.dart';
-
-import '../../so_ux/chat_controller.dart';
 
 final callServiceProvider = FutureProvider<CallService>((ref) async {
   final capture = await ref.watch(mediaCaptureServiceProvider.future);
@@ -33,33 +32,33 @@ final callServiceProvider = FutureProvider<CallService>((ref) async {
     await ref.read(webSocketProvider.future),
     capture,
     ref.read(chatsServiceProvider.notifier),
-    ref.read(inAppNotificationsManagerProvider.notifier),
     ref,
   );
 });
+
+final mediaStateProvider = StateProvider<CallMediaState?>((ref) => null);
 
 class CallService {
   final WebSocketService _webSocket;
   final CaptureService _captureService;
   final ChatService _chatService;
 
-  final InAppNotificationsManager _inAppNotificationsManager;
-
   StreamSubscription? _subscription;
 
   RTCPeerConnection? peerConnection;
-  RTCVideoRenderer? localRenderer;
-  RTCVideoRenderer? remoteRenderer;
 
   Ref _ref;
 
   final List<RTCIceCandidate> _pendingCandidates = [];
+  final lastRTCState = ValueNotifier<String?>(null);
+
+  final _callEventController = StreamController<CallEvent>.broadcast();
+  Stream<CallEvent> get callEvents => _callEventController.stream;
 
   CallService(
     this._webSocket,
     this._captureService,
     this._chatService,
-    this._inAppNotificationsManager,
     this._ref,
   ) {
     startListen();
@@ -68,20 +67,33 @@ class CallService {
   void dispose() {
     _subscription?.cancel();
     peerConnection?.dispose();
-    localRenderer?.dispose();
+    _ref.read(mediaStateProvider.notifier).state?.dispose();
+  }
+
+  void updateLastRTCState(String? text) {
+    lastRTCState.value = text;
+  }
+
+  void _updateMediaState(CallMediaState Function(CallMediaState state) update) {
+    final notifier = _ref.read(mediaStateProvider.notifier);
+    final current = notifier.state;
+
+    if (current != null) {
+      notifier.state = update(current);
+    }
   }
 
   // TODO: SET SPEAKER, ITS REALLY IMPORTANT
-
   void startListen() {
     _subscription = _webSocket.callMessages.listen((message) {
       debugPrint(message.toJsonString());
       switch (message.type) {
         case "call_offer":
           {
-            _inAppNotificationsManager.addUpdate(
-              SoNotification(title: "Call incoming"),
+            _callEventController.add(
+              CallEvent("new_call", message.payload["chat_id"]),
             );
+
             Chat chat = _chatService.chatList.firstWhere(
               (c) => c.id == message.payload["chat_id"],
             );
@@ -92,7 +104,7 @@ class CallService {
           }
         case "call_answer":
           {
-            handleAnswer(message.payload["sdp"], message.payload["chat_id"]);
+            handleAnswer(message.payload["sdp"], message.payload["chat_id"], message.payload["user_id"]);
             break;
           }
         case "call_ice":
@@ -102,7 +114,7 @@ class CallService {
           }
         case "call_end":
           {
-            handleCallEnd(message.payload);
+            handleCallEnd(message.payload["chat_id"]);
             break;
           }
       }
@@ -126,16 +138,26 @@ class CallService {
 
     final pc = await createPeerConnection(configuration);
 
-    remoteRenderer = RTCVideoRenderer();
-    localRenderer = RTCVideoRenderer();
+    final localRenderer = RTCVideoRenderer();
+    final remoteRenderer = RTCVideoRenderer();
 
-    await remoteRenderer?.initialize();
-    await localRenderer?.initialize();
+    await localRenderer.initialize();
+    await remoteRenderer.initialize();
 
-    localRenderer?.srcObject = _captureService.localStream;
+    localRenderer.srcObject = _captureService.localStream;
+    remoteRenderer.onFirstFrameRendered = () {
+      _updateMediaState((state) => state.copyWith(hasRemoteVideo: true));
+    };
+
+    _ref.read(mediaStateProvider.notifier).state = CallMediaState(
+      localRenderer: localRenderer,
+      remoteRenderer: remoteRenderer,
+      hasLocalVideo:
+          _captureService.localStream?.getVideoTracks().isNotEmpty == true,
+    );
 
     if (_captureService.localStream == null) {
-      print("NO LOCAL STREAM");
+      debugPrint("NO LOCAL STREAM");
       throw Exception("NO LOCAL STREAM");
     }
 
@@ -144,31 +166,54 @@ class CallService {
     }
 
     pc.onTrack = (RTCTrackEvent event) async {
+      final stream = event.streams.firstOrNull;
+      if (stream == null) return;
+
       if (event.track.kind == 'audio' || event.track.kind == 'video') {
         event.track.enabled = true;
-        if (event.streams.isNotEmpty && remoteRenderer != null) {
-          remoteRenderer!.srcObject = event.streams.first;
+        if (event.streams.isNotEmpty &&
+            _ref.read(mediaStateProvider.notifier).state!.remoteRenderer !=
+                null) {
+          _ref
+                  .read(mediaStateProvider.notifier)
+                  .state!
+                  .remoteRenderer!
+                  .srcObject =
+              event.streams.first;
 
           if (_captureService.selectedAudioOutput?.deviceId != null) {
-            await remoteRenderer!.audioOutput(
-              _captureService.selectedAudioOutput!.deviceId,
-            );
+            await _ref
+                .read(mediaStateProvider.notifier)
+                .state!
+                .remoteRenderer!
+                .audioOutput(_captureService.selectedAudioOutput!.deviceId);
           }
+        }
+        if (event.track.kind == 'video') {
+          _updateMediaState((state) => state.copyWith(hasRemoteVideo: true));
         }
       }
     };
     pc.onIceConnectionState = (error) {
-      print("ICE: $error");
+      debugPrint("ICE: $error");
+      updateLastRTCState(error.name);
     };
-
     pc.onConnectionState = (state) {
-      print(state);
+      debugPrint("$state");
+      updateLastRTCState(state.name);
+    };
+    pc.onIceGatheringState = (state) {
+      debugPrint("$state");
+      updateLastRTCState(state.name);
+    };
+    pc.onSignalingState = (state) {
+      debugPrint("$state");
+      updateLastRTCState(state.name);
     };
 
     pc.onIceCandidate = (RTCIceCandidate? candidate) {
       if (candidate == null) return;
 
-      print(candidate.toMap());
       _webSocket.addToSink(
         MessagePacket(
           type: "call_ice",
@@ -184,11 +229,15 @@ class CallService {
     return pc;
   }
 
-  Future<void> startCall(int userId, int chatId) async {
+  Future<void> startCall(
+    int userId,
+    int chatId, {
+    bool withVideo = false,
+  }) async {
     try {
       await _captureService.initializeLocalStream(
-        audioId: _captureService.selectedAudioInput!.deviceId,
-        //videoId: _captureService.selectedVideoInput!.deviceId,
+        audio: true,
+        video: withVideo,
       );
       TurnCredentials turnCredentials = await getCredentials();
 
@@ -200,9 +249,9 @@ class CallService {
           payload: {"chat_id": chatId, "user_id": userId},
         ),
       );
+
       if (checkResult.payload["sdp"] != null) {
         await handleOffer(checkResult.payload["sdp"], chatId);
-        return;
       } else {
         if (checkResult.payload["success"] == false) {
           throw Exception(checkResult.payload["server_message"]);
@@ -216,21 +265,19 @@ class CallService {
           payload: {"sdp": offer.sdp, "user_id": userId, "chat_id": chatId},
         );
 
-        final request = await _webSocket.sendRequest(messagePacket);
-        if (request.payload["success"] == false) {
-          throw Exception(request.payload["server_message"]);
-        }
+        _webSocket.addToSink(messagePacket.toJson());
       }
     } catch (e) {
       throw Exception(e);
     }
   }
 
-  Future<void> handleOffer(String sdp, int chatId) async {
-    await _captureService.initializeLocalStream(
-      audioId: _captureService.selectedAudioInput!.deviceId,
-      //videoId: _captureService.selectedVideoInput!.deviceId,
-    );
+  Future<void> handleOffer(
+    String sdp,
+    int chatId, {
+    bool withVideo = false,
+  }) async {
+    await _captureService.initializeLocalStream(audio: true, video: withVideo);
 
     TurnCredentials turnCredentials = await getCredentials();
 
@@ -244,9 +291,7 @@ class CallService {
       RTCSessionDescription(sdp, "offer"),
     );
 
-    Chat chat = _chatService.chatList.firstWhere(
-      (c) => c.id == chatId,
-    );
+    Chat chat = _chatService.chatList.firstWhere((c) => c.id == chatId);
     chat.callState = CallState.IN_CALL;
 
     _chatService.addUpdate(chat);
@@ -266,18 +311,19 @@ class CallService {
     _webSocket.addToSink(messagePacket.toJson());
   }
 
-  Future<void> handleAnswer(String sdp, int chatId) async {
+  Future<void> handleAnswer(String sdp, int chatId, int userId) async {
     if (peerConnection == null) {
       throw Exception("peerConnection is null");
     }
+
+    final user = await _ref.read(userServiceProvider).getUser(id: userId);
+    _callEventController.add(CallEvent("user_joined", user));
 
     await peerConnection!.setRemoteDescription(
       RTCSessionDescription(sdp, "answer"),
     );
 
-    Chat chat = _chatService.chatList.firstWhere(
-      (c) => c.id == chatId,
-    );
+    Chat chat = _chatService.chatList.firstWhere((c) => c.id == chatId);
     chat.callState = CallState.IN_CALL;
 
     _chatService.addUpdate(chat);
@@ -297,8 +343,9 @@ class CallService {
           : int.tryParse(payload['sdp_mline_index']?.toString() ?? '0'),
     );
 
-    if (peerConnection == null ||
-        peerConnection!.getRemoteDescription == null) {
+    final remoteDescriptionSet = await peerConnection!.getRemoteDescription();
+
+    if (peerConnection == null || remoteDescriptionSet == null) {
       _pendingCandidates.add(candidateIce);
       return;
     }
@@ -306,15 +353,30 @@ class CallService {
     await peerConnection!.addCandidate(candidateIce);
   }
 
-  Future<void> callEnd() async {
-    _webSocket.addToSink(MessagePacket(type: "call_end", payload: {}).toJson());
+  Future<void> callEnd(int chatId) async {
+    _webSocket.addToSink(
+      MessagePacket(type: "call_end", payload: {}).toJson(),
+    );
+    await handleCallEnd(chatId);
   }
 
-  Future<void> handleCallEnd(Map<String, dynamic> payload) async {
-    if (payload["success"] != true) return;
+  Future<void> handleCallEnd(int chatId) async {
+    updateLastRTCState(null);
+    final mediaNotifier = _ref.read(mediaStateProvider.notifier);
+    final mediaState = mediaNotifier.state;
+
+    // Change chat call state
+    Chat chat = _chatService.chatList.firstWhere((c) => c.id == chatId);
+    chat.callState = CallState.IDLE;
+
+    _chatService.addUpdate(chat);
+
+    if (peerConnection == null) {
+      return;
+    }
 
     try {
-      if (peerConnection != null) {
+      /*if (peerConnection != null) {
         try {
           var transceivers = await peerConnection!.getTransceivers();
           for (var transceiver in transceivers) {
@@ -332,14 +394,16 @@ class CallService {
         } catch (e) {
           print("Error stopping peer connection tracks/transceivers: $e");
         }
+      }*/
+
+      final localStream = mediaState!.localRenderer?.srcObject;
+      if (mediaState.localRenderer != null) {
+        mediaState.localRenderer!.srcObject = null;
       }
-
-      final localStream = localRenderer?.srcObject;
-      if (localRenderer != null) localRenderer!.srcObject = null;
-
-      final remoteStream = remoteRenderer?.srcObject;
-      if (remoteRenderer != null) remoteRenderer!.srcObject = null;
-
+      final remoteStream = mediaState.remoteRenderer?.srcObject;
+      if (mediaState.remoteRenderer != null) {
+        mediaState.remoteRenderer!.srcObject = null;
+      }
       if (localStream != null) {
         for (var track in localStream.getTracks()) {
           await track.stop();
@@ -356,28 +420,19 @@ class CallService {
           await peerConnection!.close();
           await peerConnection!.dispose();
         } catch (e) {
-          print("PeerConnection close/dispose error: $e");
+          debugPrint("PeerConnection close/dispose error: $e");
+          rethrow;
         }
       }
 
-      await localRenderer?.dispose();
-      await remoteRenderer?.dispose();
+      _ref.read(mediaStateProvider.notifier).state?.dispose();
     } catch (e) {
-      print("Caught error: $e");
+      debugPrint("Caught error: $e");
+      rethrow;
     } finally {
-      remoteRenderer = null;
-      localRenderer = null;
+      _ref.read(mediaStateProvider.notifier).state = null;
       peerConnection = null;
     }
-
-    // Change chat call state
-    Chat chat = _chatService.chatList.firstWhere(
-      (c) => c.id == payload["chat_id"],
-    );
-    chat.callState = CallState.IDLE;
-
-    _chatService.addUpdate(chat);
-    _ref.read(isInCallProvider.notifier).state = false;
   }
 
   Future<TurnCredentials> getCredentials() async {

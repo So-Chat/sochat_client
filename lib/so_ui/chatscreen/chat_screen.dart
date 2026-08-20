@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_resizable_container/flutter_resizable_container.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:sochat_client/context/menus.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:sochat_client/modules/calls/call_service.dart';
@@ -29,29 +28,30 @@ class ChatScreen extends ConsumerStatefulWidget {
   ConsumerState<ChatScreen> createState() => _ChatScreenState();
 }
 
-final activeList = StateProvider<int>((ref) => 0);
-
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   double width = 0;
 
   final resizableController = ResizableController();
+  final GlobalKey _avatarButtonKey = GlobalKey();
 
   @override
   void initState() {
     final chatController = ref.read(chatControllerProvider.notifier);
-    chatController.getChatList();
-    chatController.getFriendsList();
+    chatController.loadChatList();
+    chatController.loadFriendsList();
 
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    final active = ref.watch(activeList);
-    final activeSettings = ref.watch(selectedSettingsOptionProvider);
+    final chatController = ref.read(chatControllerProvider.notifier);
 
-    final selectedChat = ref.watch(selectedChatProvider);
-    final currentUser = ref.watch(currentUserProvider);
+    final active = ref.watch(chatControllerProvider).activeList;
+    final activeSettings = ref.watch(settingsControllerProvider).selectedOption;
+
+    final selectedChat = ref.watch(chatControllerProvider).selectedChat;
+    final currentUser = ref.watch(authServiceProvider).currentUser;
 
     ref.read(callServiceProvider);
 
@@ -67,7 +67,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             children: [
               if (selectedChat == null)
                 _buildTopBar(
-                  currentUser,
+                  currentUser, chatController,
                   padding: EdgeInsets.fromLTRB(8, 8, 8, 0),
                 ),
               width >= 600
@@ -104,7 +104,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         child: Column(
           spacing: 8,
           children: [
-            _buildTopBar(currentUser),
+            _buildTopBar(currentUser, chatController),
             width >= 600
                 ? Expanded(
                     child: _buildFullLayout(
@@ -130,7 +130,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-  Widget _buildTopBar(User? currentUser, {EdgeInsets? padding}) {
+  Widget _buildTopBar(User? currentUser, ChatController chatController, {EdgeInsets? padding}) {
     return Padding(
       padding: padding ?? const EdgeInsets.all(0.0),
       child: Column(
@@ -148,23 +148,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     TopButton(
                       Icons.sms,
                       onPressed: () {
-                        ref.read(activeList.notifier).state = 0;
+                        chatController.setActiveList(0);
                       },
                     ),
                     TopButton(
                       Icons.person,
                       onPressed: () {
-                        ref.read(activeList.notifier).state = 1;
+                        chatController.setActiveList(1);
                       },
                     ),
                     TopButton(
                       Icons.settings,
                       onPressed: () {
-                        ref.read(activeList.notifier).state = 2;
+                        chatController.setActiveList(2);
                         ref
-                                .read(selectedSettingsOptionProvider.notifier)
-                                .state =
-                            0;
+                        .read(settingsControllerProvider.notifier).setSelectedOption(0);
                       },
                     ),
                   ],
@@ -181,7 +179,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 spacing: 8,
                 children: [
                   TopButton(Icons.inbox_rounded),
-                  AvatarButton(user: currentUser),
+                  AvatarButton(user: currentUser, buttonKey: _avatarButtonKey),
                 ],
               ),
             ],
@@ -198,20 +196,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   TopButton(
                     Icons.sms,
                     onPressed: () {
-                      ref.read(activeList.notifier).state = 0;
+                      chatController.setActiveList(0);
                     },
                   ),
                   TopButton(
                     Icons.person,
                     onPressed: () {
-                      ref.read(activeList.notifier).state = 1;
+                      chatController.setActiveList(1);
                     },
                   ),
                   TopButton(
                     Icons.settings,
                     onPressed: () {
-                      ref.read(activeList.notifier).state = 2;
-                      ref.read(selectedSettingsOptionProvider.notifier).state = 0;
+                      chatController.setActiveList(2);
+                      ref.read(settingsControllerProvider.notifier).setSelectedOption(0);
                     },
                   ),
                 ],

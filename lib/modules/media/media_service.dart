@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:mime/mime.dart';
@@ -15,7 +16,7 @@ import 'media.dart';
 
 final mediaServiceProvider = Provider<MediaService>((ref) {
   final keyService = ref.read(keyServiceProvider.notifier);
-  final authService = ref.read(authServiceProvider);
+  final authService = ref.read(authServiceProvider.notifier);
   return MediaService(keyService, authService);
 });
 
@@ -60,9 +61,8 @@ class MediaService {
     SecretKey? aesKey,
   }) async {
     return mediaFile.decodedFileBytes ??= () async {
-      print("image reload");
       final ip = _keyService.servers.entries
-          .toList()[ref.read(selectedServerProvider)]
+          .toList()[ref.read(keyServiceProvider).selectedServer]
           .value;
 
       final stream = await _openMediaStream(ip, mediaFile, aesKey: aesKey);
@@ -78,8 +78,6 @@ class MediaService {
       url,
       headers: {'Authorization': 'Bearer ${_authService.token!}'},
     );
-
-    print(request.body);
   }
 
   Future<void> uploadMedia(
@@ -152,9 +150,8 @@ class MediaService {
       var responseBody = await response.stream.bytesToString();
       mediaFile.mediaId = responseBody;
       mediaFile.isLoaded = true;
-      print('Loaded!');
     } else {
-      print('Error: ${response.statusCode}');
+      debugPrint('Error: ${response.statusCode}');
     }
   }
 
@@ -177,7 +174,7 @@ class MediaService {
         handleData: (chunk, sink) {
           uploadedState += chunk.length;
 
-          print('Uploaded${isEncrypted ? " encrypted" : ""}: $uploadedState');
+          debugPrint('Uploaded${isEncrypted ? " encrypted" : ""}: $uploadedState');
 
           sink.add(chunk);
         },

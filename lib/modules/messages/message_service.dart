@@ -2,58 +2,63 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:sochat_client/modules/chats/chat.dart';
 import 'package:sochat_client/modules/chats/chat_service.dart';
-import 'package:sochat_client/modules/chats/sender_key.dart';
 import 'package:sochat_client/modules/media/media.dart';
 import 'package:sochat_client/modules/media/media_service.dart';
-import 'package:sochat_client/modules/notifications/notifications_service.dart';
 import 'package:sochat_client/modules/users/user_service.dart';
 import 'package:sochat_client/modules/websocket/message_packet.dart';
 import 'package:sochat_client/modules/users/user.dart';
 import 'package:sochat_client/modules/websocket/web_socket_service.dart';
-import 'package:sochat_client/so_ux/chat_controller.dart';
 
-import '../common/auth_service.dart';
 import '../keys/key_service.dart';
 import 'message.dart';
 
 
-final messageServiceProvider = StateNotifierProvider<MessageService, MessagesState>(
-      (ref) => MessageService(ref.read(webSocketProvider.future), ref.read(keyServiceProvider.notifier), ref.read(chatsServiceProvider.notifier), ref.read(userServiceProvider.notifier), ref.read(mediaServiceProvider),ref.read(notificationsServiceProvider.future), ref),);
+final messageServiceProvider = NotifierProvider<MessageService, MessagesState>(
+  MessageService.new,
+);
 
 
 
 class MessagesState {
-  MessagesState();
+  final Map<int, List<Message>> messageMap;
+
+  MessagesState({required this.messageMap});
+
+  MessagesState copyWith({Map<int, List<Message>>? messages}) {
+    return MessagesState(messageMap: messages ?? messageMap);
+  }
 }
 
-class MessageService extends StateNotifier<MessagesState> {
+class MessageService extends Notifier<MessagesState> {
   late final WebSocketService _webSocket;
-  final KeyService _keyService;
-  final ChatService _chatService;
-  final UserService _userService;
-  final MediaService _mediaService;
-  late final NotificationsService _notificationsService;
+  late final KeyService _keyService;
+  late final ChatService _chatService;
+  late final UserService _userService;
+  late final MediaService _mediaService;
 
-  Ref ref;
   StreamSubscription? _subscription;
 
-  MessageService(Future<WebSocketService> webSocketFuture, this._keyService, this._chatService, this._userService, this._mediaService, Future<NotificationsService> notificationsFuture, this.ref)
-      : super(MessagesState()) {
-        notificationsFuture.then((nF) {
-          _notificationsService = nF;
-        }).catchError((error) {
-          throw Exception("NotificationsService initialization in ChatService fall in error!\nstacktrace: $error");
-        });
-    webSocketFuture.then((ws) {
-      _webSocket = ws;
-      startListen();
-    }).catchError((error) {
-      throw Exception("WebSocket initialization in ChatService fall in error!\nstacktrace: $error");
+  Map<int, List<Message>> get messageMap => state.messageMap;
+
+  @override
+  MessagesState build() {
+    _keyService = ref.read(keyServiceProvider.notifier);
+    _chatService = ref.read(chatsServiceProvider.notifier);
+    _userService = ref.read(userServiceProvider);
+    _mediaService = ref.read(mediaServiceProvider);
+
+    ref.onDispose(() {
+      _subscription?.cancel();
     });
 
+    ref.watch(webSocketProvider.future).then((ws) {
+      _webSocket = ws;
+      startListen();
+    });
+
+    return MessagesState(messageMap: {});
   }
 
 
@@ -65,7 +70,7 @@ class MessageService extends StateNotifier<MessagesState> {
           if (message.payload["success"] == "true"){
             break;
           }
-          Chat chat = ref.read(chatsListProvider).firstWhere((c) => c.id == jsonDecode(message.payload["message"] as String)["chatId"]);
+          Chat chat = ref.read(chatsServiceProvider).chatList.firstWhere((c) => c.id == jsonDecode(message.payload["message"] as String)["chatId"]);
 
           receiveMessage(message, chat);
           break;
@@ -80,12 +85,6 @@ class MessageService extends StateNotifier<MessagesState> {
         }
       }
     });
-  }
-
-  @override
-  void dispose() {
-    _subscription?.cancel();
-    super.dispose();
   }
 
   Future<void> getRecentMessages(Chat chat, int offset, {atStart = true}) async {
@@ -114,7 +113,7 @@ class MessageService extends StateNotifier<MessagesState> {
         final List<dynamic> mediasJson = messageJson['mediaFiles'];
         final List<Media> medias = [];
         for (final mediaJson in mediasJson){
-          final ip = _keyService.servers.entries.toList()[ref.read(selectedServerProvider)].value;
+          final ip = _keyService.servers.entries.toList()[ref.read(keyServiceProvider).selectedServer].value;
 
           final media = Media.fromJson(mediaJson);
           _mediaService.resolveMediaBytes(ip, media);
@@ -124,8 +123,7 @@ class MessageService extends StateNotifier<MessagesState> {
 
         addMessage(message, atStart: atStart);
       }catch (e){
-        print(e);
-        print("no");
+        rethrow;
       }
     }
   }
@@ -141,10 +139,6 @@ class MessageService extends StateNotifier<MessagesState> {
 
   Future<void> sendMessage(String content, int? replyMessageId, List<Media> mediaFiles, Chat chat) async{
     String encryptedContent = await _keyService.encryptStringWithAesToString(content, chat.findLatestChatKey()!.key);
-
-    for (SenderKey senderKey in chat.chatKeys){
-      print("senderkey: ${senderKey.keyVersion}: ${senderKey.key}");
-    }
 
     MessagePacket message = MessagePacket(type: "message_send", payload: {
       "content": encryptedContent,
@@ -187,7 +181,7 @@ class MessageService extends StateNotifier<MessagesState> {
     final List<dynamic> mediasJson = messageJson['mediaFiles'] ?? [];
     final List<Media> medias = [];
     for (final mediaJson in mediasJson){
-      final ip = _keyService.servers.entries.toList()[ref.read(selectedServerProvider)].value;
+      final ip = _keyService.servers.entries.toList()[ref.read(keyServiceProvider).selectedServer].value;
 
       final media = Media.fromJson(mediaJson);
       _mediaService.resolveMediaBytes(ip, media);
@@ -204,20 +198,15 @@ class MessageService extends StateNotifier<MessagesState> {
           jsonDecode(requestPacket.payload["message"]), sender, medias);
     }
 
-    print(requestPacket.payload["success"]);
-    if (requestPacket.payload["success"] != true && ref.read(selectedChatProvider) != null && ref.read(selectedChatProvider)!.id != message.chatId){
-      _notificationsService.show(message.id, "${message.sender.nickname} : ${ref.read(currentUserProvider)!.nickname}", message.content);
-    }
+
 
     addMessage(message);
 
   }
 
   void addMessage(Message message, {bool atStart = true}) {
-    final notifier = ref.read(chatMessagesProvider.notifier);
-    final currentMap = notifier.state;
     final currentMessages = List<Message>.from(
-      currentMap[message.chatId] ?? [],
+      messageMap[message.chatId] ?? [],
     );
 
     final messageIndex = currentMessages.indexWhere((m) => m.id == message.id);
@@ -231,19 +220,16 @@ class MessageService extends StateNotifier<MessagesState> {
     currentMessages.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
     final updatedMap = {
-      ...currentMap,
+      ...messageMap,
       message.chatId: currentMessages,
     };
 
-    notifier.state = updatedMap;
+    state = state.copyWith(messages: updatedMap);
   }
 
   void removeMessage(int id, int chatId) {
-    final notifier = ref.read(chatMessagesProvider.notifier);
-    final currentMap = notifier.state;
-
     final currentMessages = List<Message>.from(
-      currentMap[chatId] ?? [],
+      messageMap[chatId] ?? [],
     );
 
     if (!currentMessages.any((m) => m.id == id)) return;
@@ -251,16 +237,16 @@ class MessageService extends StateNotifier<MessagesState> {
     currentMessages.removeWhere((message) => message.id == id);
 
     final updatedMap = {
-      ...currentMap,
+      ...messageMap,
       chatId: currentMessages,
     };
 
-    notifier.state = updatedMap;
+    state = state.copyWith(messages: updatedMap);
   }
 
   Future<void> receiveLastReadMessage(MessagePacket requestPacket) async {
     Map<String, dynamic> participantJson = jsonDecode(requestPacket.payload["participant"]);
-    _chatService.updateParticipantLastRead(participantJson["chatId"], participantJson["userId"], participantJson["lastMessageId"]);
+    _chatService.updateParticipantLastReadInChat(participantJson["chatId"], participantJson["userId"], participantJson["lastMessageId"]);
   }
 
   Future<void> readLastMessage(int id) async {

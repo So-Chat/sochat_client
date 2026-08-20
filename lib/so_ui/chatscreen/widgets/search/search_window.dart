@@ -1,8 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sochat_client/context/context_menu.dart';
-import 'package:sochat_client/context/context_window.dart';
 import 'package:sochat_client/context/menus.dart';
 
 import 'package:sochat_client/extenstions/theme_getter.dart';
@@ -39,7 +37,7 @@ class _SearchWindowState extends ConsumerState<SearchWindow> {
 
     friendShipService = ref.read(friendsServiceProvider.notifier);
     chatService = ref.read(chatsServiceProvider.notifier);
-    userService = ref.read(userServiceProvider.notifier);
+    userService = ref.read(userServiceProvider);
   }
 
   Future<void> _search(String query) async {
