@@ -23,6 +23,24 @@ The client is designed for users who want to connect to self-hosted messaging in
 ## THIS PROJECT IS STILL A WORK IN PROGRESS
 - SoChat is currently under active development. Some features may be incomplete or subject to change.
 
+## Features
+- End-to-end encryption — Messages and media are encrypted before leaving the client.
+- User profiles
+- Friends and friend requests
+- Private and group messaging
+- Media sharing
+- P2P voice & video calls
+- Media device management
+- Desktop support
+### Planned features
+- More encryption
+- SFU-based calls
+- Mobile UI
+- Avatars
+- Notification improvments
+- Localization
+- And more!
+
 ## Libraries used in project
 
 | Library                     | Version|
