@@ -26,18 +26,29 @@ class MediaService {
 
   MediaService(this._keyService, this._authService);
 
-  Future<List<File>> getFiles() async {
-    FilePickerResult? result = await FilePicker.pickFiles(
-      allowMultiple: true,
-      lockParentWindow: true,
+  Future<List<File>> getFiles({bool onlyImages = false}) async {
+    final files = await FilePicker.pickFiles(
+      type: onlyImages ? FileType.image : FileType.any,
+      linuxOptions: const LinuxOptions(
+        lockParentWindow: true,
+      ),
     );
 
-    if (result != null) {
-      List<File> files = result.paths.map((path) => File(path!)).toList();
-      return files;
-    } else {
-      return [];
-    }
+    return files
+        .where((file) => file.path != null)
+        .map((file) => File(file.path!))
+        .toList();
+  }
+
+  Future<File?> getSingleFile({bool onlyImages = false}) async {
+    final file = await FilePicker.pickFile(
+      type: onlyImages ? FileType.image : FileType.any,
+      linuxOptions: const LinuxOptions(
+        lockParentWindow: true,
+      ),
+    );
+
+    return file?.path != null ? File(file!.path!) : null;
   }
 
   Future<void> downloadMedia(
@@ -85,12 +96,15 @@ class MediaService {
     Media mediaFile, {
     String? description,
     SecretKey? aesKey,
+    bool isAvatar = false,
   }) async {
     var url = Uri.parse(('$ip/media').toString());
     var request = http.MultipartRequest("POST", url);
 
     // Set chat id and send authorization token
     request.headers['Authorization'] = 'Bearer ${_authService.token!}';
+    request.headers['Is-Avatar'] = isAvatar.toString();
+
 
     String fieldName = 'file';
 

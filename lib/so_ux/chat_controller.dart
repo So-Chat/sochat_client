@@ -217,11 +217,18 @@ class ChatController extends Notifier<ChatState> {
   }
 
   Future<void> saveFile(Media media) async {
-    String? outputFile = await FilePicker.saveFile(
-      lockParentWindow: true,
+    final outputFile = await FilePicker.saveFile(
+      bytes: media.fileBytes!,
       dialogTitle: 'Select where to save your file',
-      fileName: media.fileName,
+      fileName: media.fileName!,
+      windowsOptions: const WindowsOptions(
+        lockParentWindow: true,
+      ),
+      linuxOptions: const LinuxOptions(
+        lockParentWindow: true,
+      ),
     );
+
     if (outputFile == null) return;
 
     final ip = _keyService.servers.entries
@@ -230,7 +237,7 @@ class ChatController extends Notifier<ChatState> {
     _mediaService.downloadMedia(
       ip,
       media,
-      outputFile,
+      outputFile.toFilePath(),
       aesKey: selectedChat?.chatKeys.last.key,
     );
   }

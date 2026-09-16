@@ -35,7 +35,6 @@ class Message {
       ts[3],
       ts[4],
       ts[5],
-      (ts[6] / 1000000).round(),
     );
 
     return Message(
@@ -58,7 +57,6 @@ class Message {
       ts[3],
       ts[4],
       ts[5],
-      (ts[6] / 1000000).round(),
     );
 
     return Message(

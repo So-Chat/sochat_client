@@ -16,7 +16,7 @@ final userServiceProvider = Provider<UserService>(
   ),
 );
 
-class UserService{
+class UserService {
   late final WebSocketService _webSocket;
   final User? currentUser;
 
@@ -30,7 +30,6 @@ class UserService{
     this.currentUser,
     this.ref,
   ) {
-
     ref.onDispose(() {
       _subscription?.cancel();
     });
@@ -50,7 +49,6 @@ class UserService{
   void startListen() {
     _subscription = _webSocket.usersMessages.listen((message) {});
   }
-
 
   Future<User> getUser({
     String? username,
@@ -106,6 +104,7 @@ class UserService{
     String? nickname,
     String? username,
     String? description,
+    String? avatarId,
   ) async {
     MessagePacket message = MessagePacket(
       type: "user_update_profile",
@@ -113,16 +112,22 @@ class UserService{
         "nickname": nickname,
         "username": username,
         "description": description,
+        "avatar_id": avatarId,
       },
     );
 
     MessagePacket request = await _webSocket.sendRequest(message);
     if (request.payload["success"] == true) {
-      ref.read(authServiceProvider.notifier).setCurrentUser(currentUser!.copyWith(
-        username: request.payload["username"],
-        nickname: request.payload["nickname"],
-        description: request.payload["description"],
-      ));
+      ref
+          .read(authServiceProvider.notifier)
+          .setCurrentUser(
+            currentUser!.copyWith(
+              username: request.payload["username"],
+              nickname: request.payload["nickname"],
+              description: request.payload["description"],
+              avatarId: request.payload["avatar_id"],
+            ),
+          );
     }
   }
 
@@ -151,5 +156,12 @@ class UserService{
     } else {
       return [];
     }
+  }
+
+  Future<void> deleteUser() async {
+    final request = await _webSocket.sendRequest(
+      MessagePacket(type: "user_delete", payload: {}),
+    );
+    print(request.payload);
   }
 }
