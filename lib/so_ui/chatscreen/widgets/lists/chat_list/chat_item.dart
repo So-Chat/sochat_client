@@ -6,7 +6,9 @@ import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:sochat_client/context/context_menu_button.dart';
 import 'package:sochat_client/modules/chats/chat.dart';
 import 'package:sochat_client/modules/chats/chat_type.dart';
+import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/messages/message.dart';
+import 'package:sochat_client/so_ui/common/so_avatar.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
 import 'package:sochat_client/so_ux/chat_controller.dart';
 
@@ -48,6 +50,9 @@ class ChatItem extends ConsumerWidget {
         ),
       ),
     );
+
+    final currentUser = ref.watch(authServiceProvider).currentUser;
+
     return Material(
       color: context.colors.surface,
       borderRadius: BorderRadius.circular(10),
@@ -70,7 +75,8 @@ class ChatItem extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
           child: Row(
             children: [
-              CircleAvatar(radius: 25, child: Text(chat.title[0])),
+              SoAvatar(radius: 25, nickname: chat.title, avatarBytes: chat.avatarBytes),
+              //Text(chat.avatarId.hashCode.toString()),
               const SizedBox(width: 10),
               Expanded(
                 child: LayoutBuilder(

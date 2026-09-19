@@ -169,10 +169,10 @@ class MediaService {
     }
   }
 
-  Future<void> resolveMediaBytes(String ip, Media media) async {
-    final url = "$ip/media/${media.mediaId}";
+  Future<Uint8List> resolveMediaBytes(String ip, String mediaId) async {
+    final url = "$ip/media/${mediaId}";
     final response = await http.get(Uri.parse(url));
-    media.fileBytes = response.bodyBytes;
+    return response.bodyBytes;
   }
 
   Stream<List<int>> buildProgressStream(

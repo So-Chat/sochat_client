@@ -12,6 +12,7 @@ import 'package:sochat_client/modules/chats/chat_role.dart';
 import 'package:sochat_client/modules/chats/chat_type.dart';
 import 'package:sochat_client/modules/chats/participant.dart';
 import 'package:sochat_client/modules/chats/sender_key.dart';
+import 'package:sochat_client/modules/media/media_service.dart';
 import 'package:sochat_client/modules/messages/message.dart';
 import 'package:sochat_client/modules/messages/message_service.dart';
 import 'package:sochat_client/modules/users/user_service.dart';
@@ -22,8 +23,7 @@ import 'package:sochat_client/modules/websocket/web_socket_service.dart';
 import '../common/auth_service.dart';
 import '../keys/key_service.dart';
 
-final chatsServiceProvider =
-    NotifierProvider<ChatService, ChatsState>(
+final chatsServiceProvider = NotifierProvider<ChatService, ChatsState>(
   ChatService.new,
 );
 
@@ -41,6 +41,7 @@ class ChatService extends Notifier<ChatsState> {
   late final WebSocketService _webSocket;
   late final KeyService _keyService;
   late final UserService _userService;
+  late final MediaService _mediaService;
 
   User? get currentUser => ref.read(authServiceProvider).currentUser;
 
@@ -50,6 +51,7 @@ class ChatService extends Notifier<ChatsState> {
   ChatsState build() {
     _keyService = ref.read(keyServiceProvider.notifier);
     _userService = ref.read(userServiceProvider);
+    _mediaService = ref.read(mediaServiceProvider);
 
     ref.watch(webSocketProvider.future).then((ws) {
       _webSocket = ws;
@@ -60,9 +62,7 @@ class ChatService extends Notifier<ChatsState> {
       _subscription?.cancel();
     });
 
-    return const ChatsState(
-      chatList: [],
-    );
+    return const ChatsState(chatList: []);
   }
 
   StreamSubscription? _subscription;
@@ -132,10 +132,11 @@ class ChatService extends Notifier<ChatsState> {
     }
   }
 
-  Future<Chat> getChatByName(String username) async {
+  Future<Chat> getChatByName(String username, {bool withAvatar = true}) async {
     if (chatList.any((c) => c.title == username)) {
       Chat localChat = chatList.firstWhere((c) => c.title == username);
-      if (ref.read(messageServiceProvider).messageMap[localChat.id]!.length > 1) {
+      if (ref.read(messageServiceProvider).messageMap[localChat.id]!.length >
+          1) {
         return localChat;
       }
     }
@@ -146,13 +147,13 @@ class ChatService extends Notifier<ChatsState> {
     );
     MessagePacket request = await _webSocket.sendRequest(message);
 
-    Chat chat = await receiveChat(jsonDecode(request.payload["chat"]));
+    Chat chat = await receiveChat(jsonDecode(request.payload["chat"]), withAvatar: withAvatar);
 
     addUpdate(chat);
     return chat;
   }
 
-  Future<Chat> getChatById(int id) async {
+  Future<Chat> getChatById(int id, {bool withAvatar = true}) async {
     if (chatList.any((c) => c.id == id)) {
       Chat localChat = chatList.firstWhere((c) => c.id == id);
       if (ref.read(messageServiceProvider).messageMap.containsKey(id) &&
@@ -167,7 +168,7 @@ class ChatService extends Notifier<ChatsState> {
     );
     MessagePacket request = await _webSocket.sendRequest(message);
 
-    Chat chat = await receiveChat(jsonDecode(request.payload["chat"]));
+    Chat chat = await receiveChat(jsonDecode(request.payload["chat"]), withAvatar: withAvatar);
 
     addUpdate(chat);
     return chat;
@@ -231,12 +232,13 @@ class ChatService extends Notifier<ChatsState> {
     remove((await receiveChat(jsonDecode(request.payload["chat"]))).title);
   }
 
-  Future<Chat> receiveChat(Map<String, dynamic> chatMap) async {
+  Future<Chat> receiveChat(Map<String, dynamic> chatMap, {bool withAvatar = true}) async {
     try {
       Chat chat = Chat(
         id: chatMap['id'],
         title: chatMap["title"],
         type: ChatType.values.byName(chatMap["chatType"]),
+        avatarId: chatMap["avatarId"],
       );
 
       chat.callState = CallState.values.byName(chatMap['callState']);
@@ -246,6 +248,7 @@ class ChatService extends Notifier<ChatsState> {
         for (Map<String, dynamic> participantJson in participantsJson) {
           User user = (await _userService.getUser(
             id: participantJson["userId"],
+            forceUpdate: false,
           ));
 
           Participant participant = Participant(
@@ -253,6 +256,7 @@ class ChatService extends Notifier<ChatsState> {
             chatRole: ChatRole.values.byName(participantJson["chatRole"]),
             lastReadMessageId: participantJson["lastMessageId"],
           );
+
           if (chat.participants.any((p) => p.user.id == user.id)) {
             chat.participants[chat.participants.indexWhere(
                   (p) => p.user.id == participant.user.id,
@@ -328,7 +332,7 @@ class ChatService extends Notifier<ChatsState> {
           ref.read(messageServiceProvider.notifier).addMessage(message);
         }
       }
-
+      if (withAvatar) { await loadAvatar(chat); }
       return chat;
     } on Exception catch (e) {
       debugPrint("Error loading chat, chatmap: $chatMap");
@@ -411,7 +415,11 @@ class ChatService extends Notifier<ChatsState> {
     }
   }
 
-  Chat updateParticipantLastReadInChat(int chatId, int userId, int lastMessageId,) {
+  Chat updateParticipantLastReadInChat(
+    int chatId,
+    int userId,
+    int lastMessageId,
+  ) {
     final updatedChats = state.chatList.map((chat) {
       if (chat.id != chatId) {
         return chat;
@@ -435,5 +443,20 @@ class ChatService extends Notifier<ChatsState> {
     final updated = state.chatList.firstWhere((c) => c.id == chatId);
 
     return updated;
+  }
+
+  Future<void> loadAvatar(Chat chat) async {
+    final avatarId = chat.avatarId;
+
+    if (avatarId == null || avatarId.isEmpty) {
+      return;
+    }
+    final ip = ref
+        .read(keyServiceProvider)
+        .servers
+        .entries
+        .toList()[ref.read(keyServiceProvider).selectedServer]
+        .value;
+    chat.avatarBytes = await _mediaService.resolveMediaBytes(ip, avatarId);
   }
 }

@@ -40,6 +40,7 @@ class AuthService extends Notifier<AuthState> {
   }
 
   void setCurrentUser(User? user) {
+    print("Set current user: $user");
     state = state.copyWith(currentUser: user);
   }
 

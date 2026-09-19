@@ -13,6 +13,7 @@ import 'package:sochat_client/modules/messages/message.dart';
 import 'package:sochat_client/modules/users/user.dart';
 import 'package:sochat_client/modules/users/user_service.dart';
 import 'package:sochat_client/so_ui/common/input.dart';
+import 'package:sochat_client/so_ui/common/so_avatar.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
 import 'package:sochat_client/so_ux/chat_controller.dart';
 
@@ -125,11 +126,10 @@ class _SearchWindowState extends ConsumerState<SearchWindow> {
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: Row(
                       children: [
-                        CircleAvatar(
+                        SoAvatar(
+                          avatarBytes: users[index].avatarBytes,
                           radius: 15,
-                          child: users[index].nickname != users[index].username
-                              ? Text(users[index].nickname[0])
-                              : Text(users[index].username[0]),
+                          nickname: users[index].nickname,
                         ),
                         const SizedBox(width: 8),
 

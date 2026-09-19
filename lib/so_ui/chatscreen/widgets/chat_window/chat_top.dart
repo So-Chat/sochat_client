@@ -6,6 +6,7 @@ import 'package:sochat_client/extenstions/theme_getter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/friends/friends_service.dart';
+import 'package:sochat_client/so_ui/common/so_avatar.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
 import 'package:sochat_client/so_ux/call_controller.dart';
 import 'package:sochat_client/so_ux/chat_controller.dart';
@@ -77,10 +78,7 @@ class ChatTop extends ConsumerWidget {
                     child: Row(
                       spacing: 10,
                       children: [
-                        CircleAvatar(
-                          radius: 20,
-                          child: Text(selectedChatFromList.title[0]),
-                        ),
+                        SoAvatar(radius: 20, nickname: selectedChatFromList.title, avatarBytes: selectedChatFromList.avatarBytes),
                         Text(selectedChatFromList.title),
                         selectedChatFromList.type == ChatType.GROUP_SECURE
                             ? Icon(

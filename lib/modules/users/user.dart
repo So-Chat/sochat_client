@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 class User {
   final int id;
 
@@ -11,6 +13,8 @@ class User {
 
   String? avatarId;
 
+  Uint8List? avatarBytes;
+
   User({
     required this.id,
     required this.nickname,
@@ -19,6 +23,7 @@ class User {
     this.fingerprint,
     this.description,
     this.avatarId,
+    this.avatarBytes,
   });
 
   String getDesc() =>
@@ -43,6 +48,7 @@ class User {
     String? fingerprint,
     String? x25519PublicKey,
     String? avatarId,
+    Uint8List? avatarBytes,
   }) {
     User user = User(
       id: id ?? this.id,
@@ -51,7 +57,8 @@ class User {
       description: description ?? this.description,
       fingerprint: fingerprint ?? this.fingerprint,
       x25519PublicKey: x25519PublicKey ?? this.x25519PublicKey,
-      avatarId: avatarId ?? this.avatarId,
+      avatarId: avatarId,
+      avatarBytes: avatarBytes,
     );
     return user;
   }

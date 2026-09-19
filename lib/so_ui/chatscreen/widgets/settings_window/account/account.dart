@@ -1,3 +1,6 @@
+import 'dart:collection';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/context/menus.dart';
@@ -8,7 +11,7 @@ import 'package:sochat_client/modules/media/media.dart';
 import 'package:sochat_client/modules/media/media_service.dart';
 import 'package:sochat_client/modules/users/user.dart';
 import 'package:sochat_client/modules/users/user_service.dart';
-import 'package:sochat_client/so_ui/common/avatar.dart';
+import 'package:sochat_client/so_ui/common/so_avatar.dart';
 import 'package:sochat_client/so_ui/common/input.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
 
@@ -25,6 +28,8 @@ class AccountState extends ConsumerState<Account> {
   final TextEditingController nicknameController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
+
+  Uint8List? avatarBytes;
   String? avatarId;
 
   bool isChanged = false;
@@ -36,6 +41,7 @@ class AccountState extends ConsumerState<Account> {
     nicknameController.text = currentUser?.nickname ?? "";
     usernameController.text = currentUser?.username ?? "";
     descriptionController.text = currentUser?.description ?? "";
+    avatarBytes = currentUser?.avatarBytes;
     avatarId = currentUser?.avatarId;
   }
 
@@ -46,6 +52,7 @@ class AccountState extends ConsumerState<Account> {
           (currentUser!.nickname != nicknameController.text) ||
           (currentUser.username != usernameController.text) ||
           (currentUser.description != descriptionController.text) ||
+          (currentUser.avatarBytes != avatarBytes) ||
           (currentUser.avatarId != avatarId);
     });
   }
@@ -58,7 +65,7 @@ class AccountState extends ConsumerState<Account> {
     final _mediaService = ref.watch(mediaServiceProvider);
     final _keyService = ref.watch(keyServiceProvider);
 
-    ref.listen<User?>(
+    /*ref.listen<User?>(
       authServiceProvider.select((state) => state.currentUser),
       (prev, next) {
         if (!mounted || next == null) return;
@@ -66,12 +73,14 @@ class AccountState extends ConsumerState<Account> {
         nicknameController.text = next.nickname;
         usernameController.text = next.username;
         descriptionController.text = next.description ?? "";
+        avatarId = next.avatarId;
+        avatarBytes = next.avatarBytes;
 
         setState(() {
           isChanged = false;
         });
       },
-    );
+    );*/
 
     return Padding(
       padding: const EdgeInsets.all(8.0),
@@ -91,26 +100,49 @@ class AccountState extends ConsumerState<Account> {
                         Row(
                           spacing: 8,
                           children: [
-                            Avatar(avatarId: avatarId,),
-                            SoButton(
-                              height: 35,
-                              width: 150,
-                              color: context.colors.surface,
-                              onPressed: () async {
-                                final ip = _keyService.servers.entries.toList()[ref.read(keyServiceProvider).selectedServer].value;
+                            SoAvatar(avatarBytes: avatarBytes),
+                            Column(children: [
+                              SoButton(
+                                height: 35,
+                                width: 150,
+                                color: context.colors.surface,
+                                onPressed: () async {
+                                  final ip = _keyService.servers.entries
+                                      .toList()[ref
+                                          .read(keyServiceProvider)
+                                          .selectedServer]
+                                      .value;
 
-                                final avatar = await _mediaService.getSingleFile(onlyImages: true);
-                                if (avatar != null) {
-                                  final mediaAvatar = Media(file: avatar);
-                                  await _mediaService.uploadMedia(ip, mediaAvatar, isAvatar: true);
+                                  final avatar = await _mediaService
+                                      .getSingleFile(onlyImages: true);
+                                  if (avatar != null) {
+                                    final mediaAvatar = Media(file: avatar);
+                                    await _mediaService.uploadMedia(
+                                      ip,
+                                      mediaAvatar,
+                                      isAvatar: true,
+                                    );
 
-                                  avatarId = mediaAvatar.mediaId;
+                                    avatarBytes = await mediaAvatar.file
+                                        ?.readAsBytes();
+                                    avatarId = mediaAvatar.mediaId;
+                                    checkChange();
+                                  }
+                                },
+                                child: Text("Set avatar"),
+                              ),
+                              SoButton(
+                                height: 35,
+                                width: 150,
+                                color: context.colors.surface,
+                                onPressed: () {
+                                  avatarBytes = Uint8List.fromList([]);
+                                  avatarId = "";
                                   checkChange();
-                                }
-
-                              },
-                              child: Text(""),
-                            ),
+                                },
+                                child: Text("Remove avatar"),
+                              ),
+                            ],)
                           ],
                         ),
                         Column(
@@ -288,6 +320,9 @@ class AccountState extends ConsumerState<Account> {
                                     avatarId,
                                   );
                                   checkChange();
+                                  setState(() {
+                                    isChanged = false;
+                                  });
                                 },
                                 child: Text(
                                   "Save",

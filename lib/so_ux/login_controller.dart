@@ -78,7 +78,7 @@ class LoginController{
     webSocketService.connect();
 
     _authService.token = messagePacket.payload["token"];
-    await webSocketService.authenticate(messagePacket.payload["token"]);
+    _authService.setCurrentUser(await webSocketService.authenticate(messagePacket.payload["token"]));
 
     ref.read(localStorageServiceProvider).saveSession();
 
@@ -93,8 +93,7 @@ class LoginController{
     String token = await ref.read(localStorageServiceProvider).getSessionAndSetSelectedKeys();
 
     _authService.token = token;
-
-    await webSocketService.authenticate(token);
+    _authService.setCurrentUser(await webSocketService.authenticate(token));
 
     Navigator.push(
         context, MaterialPageRoute(builder: (context) => ChatScreen()));

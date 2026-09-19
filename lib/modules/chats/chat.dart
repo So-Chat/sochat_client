@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:sochat_client/modules/calls/call_state.dart';
 import 'package:sochat_client/modules/chats/participant.dart';
 import 'package:sochat_client/modules/chats/sender_key.dart';
@@ -20,13 +21,18 @@ class Chat {
   Message? editMessage;
   String? uncompletedContent;
 
+  String? avatarId;
+  Uint8List? avatarBytes;
+
   Chat({
     required this.id,
     required this.title,
     required this.type,
     this.editMessage,
     this.uncompletedContent,
-    this.callState = CallState.IDLE
+    this.callState = CallState.IDLE,
+    this.avatarId,
+    this.avatarBytes,
   });
 
   SenderKey? findChatKeyByVersion(int version) {
@@ -55,9 +61,11 @@ class Chat {
     List<Participant>? participants,
     List<SenderKey>? chatKeys,
     Message? lastMessage,
+    CallState? callState,
+    String? avatarId,
+    Uint8List? avatarBytes,
     Message? editMessage,
     String? uncompletedContent,
-    CallState callState = CallState.IDLE,
   }) {
     Chat chat = Chat(
       id: id ?? this.id,
@@ -65,7 +73,9 @@ class Chat {
       type: type ?? this.type,
       editMessage: editMessage,
       uncompletedContent: uncompletedContent,
-      callState: callState,
+      callState: callState ?? this.callState,
+      avatarId: avatarId ?? this.avatarId,
+      avatarBytes: avatarBytes ?? this.avatarBytes,
     );
 
     chat.participants =

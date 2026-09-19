@@ -4,6 +4,7 @@ import 'package:sochat_client/context/menus.dart';
 import 'package:sochat_client/context/context_menu.dart';
 import 'package:sochat_client/context/context_menu_button.dart';
 import 'package:sochat_client/modules/users/user.dart';
+import 'package:sochat_client/so_ui/common/so_avatar.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
 
 
@@ -55,9 +56,10 @@ class FriendItem extends ConsumerWidget {
               Expanded(
                 child: Row(
                   children: [
-                    CircleAvatar(
+                    SoAvatar(
                       radius: 25,
-                      child: Text(user.username[0]),
+                      avatarBytes: user.avatarBytes,
+                      nickname: user.nickname,
                     ),
                     const SizedBox(width: 10),
                     Expanded(

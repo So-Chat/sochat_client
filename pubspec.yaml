@@ -43,7 +43,7 @@ dependencies:
   window_manager: ^0.5.1
   flutter_secure_storage: ^10.3.1
   flutter_local_notifications: ^22.0.1
-  file_picker: ^11.0.3
+  file_picker: ^13.1.0
   mime: ^2.0.0
   flutter_webrtc: ^1.5.1
 

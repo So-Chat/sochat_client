@@ -7,6 +7,7 @@ import 'package:sochat_client/extenstions/utils.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/messages/message.dart';
 import 'package:sochat_client/so_ui/chatscreen/widgets/chat_window/chat_media.dart';
+import 'package:sochat_client/so_ui/common/so_avatar.dart';
 import 'package:sochat_client/so_ux/chat_controller.dart';
 
 class MessageList extends ConsumerStatefulWidget {
@@ -128,9 +129,10 @@ class MessageListState extends ConsumerState<MessageList> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       spacing: 8,
                       children: [
-                        CircleAvatar(
+                        SoAvatar(
                           radius: 19,
-                          child: Text(message.sender.username[0]),
+                          nickname: message.sender.username,
+                          avatarBytes: message.sender.avatarBytes,
                         ),
                         Expanded(
                           child: Column(

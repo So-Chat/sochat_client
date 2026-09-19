@@ -116,7 +116,7 @@ class MessageService extends Notifier<MessagesState> {
           final ip = _keyService.servers.entries.toList()[ref.read(keyServiceProvider).selectedServer].value;
 
           final media = Media.fromJson(mediaJson);
-          _mediaService.resolveMediaBytes(ip, media);
+          media.fileBytes = await _mediaService.resolveMediaBytes(ip, media.mediaId!);
           medias.add(media);
         }
         Message message = Message.fromJsonWithMedia(messageJson, user, medias);
@@ -184,7 +184,7 @@ class MessageService extends Notifier<MessagesState> {
       final ip = _keyService.servers.entries.toList()[ref.read(keyServiceProvider).selectedServer].value;
 
       final media = Media.fromJson(mediaJson);
-      _mediaService.resolveMediaBytes(ip, media);
+      media.fileBytes = await _mediaService.resolveMediaBytes(ip, media.mediaId!);
       medias.add(media);
     }
 

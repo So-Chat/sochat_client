@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/extenstions/so_exception.dart';
 import 'package:sochat_client/extenstions/theme_getter.dart';
@@ -20,6 +21,7 @@ import 'package:sochat_client/so_ui/chatscreen/widgets/search/search_window.dart
 import 'package:sochat_client/so_ui/common/input.dart';
 import 'package:sochat_client/context/context_menu_button.dart';
 import 'package:sochat_client/context/context_window.dart';
+import 'package:sochat_client/so_ui/common/so_avatar.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
 import 'package:sochat_client/so_ui/loginscreen/widgets/settings_button.dart';
 import 'package:sochat_client/so_ux/chat_controller.dart';
@@ -190,6 +192,7 @@ class Menus {
       ref,
       title: user.nickname,
       avatarLetter: user.nickname[0],
+      avatarBytes: user.avatarBytes,
       label: user.username,
       child: Padding(
         padding: EdgeInsetsGeometry.all(8),
@@ -230,6 +233,7 @@ class Menus {
       ref,
       title: chat.title,
       avatarLetter: chat.title[0],
+      avatarBytes: chat.avatarBytes,
 
       child: ListView(
         shrinkWrap: true,
@@ -248,6 +252,7 @@ class Menus {
     WidgetRef ref, {
     required String title,
     required String avatarLetter,
+    Uint8List? avatarBytes,
     String label = "",
     Widget? child,
     Widget? buttons,
@@ -286,7 +291,11 @@ class Menus {
                       Row(
                         spacing: 10,
                         children: [
-                          CircleAvatar(radius: 30, child: Text(avatarLetter)),
+                          SoAvatar(
+                            radius: 25,
+                            avatarBytes: avatarBytes,
+                            nickname: avatarLetter,
+                          ),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -605,11 +614,10 @@ class Menus {
                                 children: [
                                   Row(
                                     children: [
-                                      CircleAvatar(
+                                      SoAvatar(
                                         radius: 25,
-                                        child: Text(
-                                          friendsList[index].username[0],
-                                        ),
+                                        avatarBytes: friendsList[index].avatarBytes,
+                                        nickname: friendsList[index].username,
                                       ),
                                       SizedBox(width: 8),
                                       Text(friendsList[index].username),
@@ -770,11 +778,10 @@ class Menus {
                                 children: [
                                   Row(
                                     children: [
-                                      CircleAvatar(
+                                      SoAvatar(
                                         radius: 25,
-                                        child: Text(
-                                          friendsList[index].username[0],
-                                        ),
+                                        avatarBytes: friendsList[index].avatarBytes,
+                                        nickname: friendsList[index].username,
                                       ),
                                       SizedBox(width: 8),
                                       Text(friendsList[index].username),
@@ -840,7 +847,11 @@ class Menus {
     items.addAll([
       ContextMenuButton(
         text: chat.title,
-        leading: CircleAvatar(radius: 20, child: Text(chat.title[0])),
+        leading: SoAvatar(
+          radius: 25,
+          avatarBytes: chat.avatarBytes,
+          nickname: chat.title,
+        ),
         onTap: openProfile(context, ref, chat),
         description: description,
       ),
@@ -917,7 +928,11 @@ class Menus {
     items.add(
       ContextMenuButton(
         text: user.username,
-        leading: CircleAvatar(radius: 20, child: Text(user.username[0])),
+        leading: SoAvatar(
+          radius: 25,
+          avatarBytes: user.avatarBytes,
+          nickname: user.username,
+        ),
         onTap: () {},
         description: description,
       ),
@@ -1025,7 +1040,11 @@ class Menus {
     return [
       ContextMenuButton(
         text: "${user.nickname} (${user.username})",
-        leading: CircleAvatar(radius: 20, child: Text(user.nickname[0])),
+        leading: SoAvatar(
+          radius: 25,
+          avatarBytes: user.avatarBytes,
+          nickname: user.nickname,
+        ),
         onTap: () {
           ref.read(chatControllerProvider.notifier).setActiveList(2);
           ref.read(settingsControllerProvider.notifier).setSelectedOption(1);

@@ -5,6 +5,7 @@ import 'package:sochat_client/context/menus.dart';
 import 'package:sochat_client/context/context_menu.dart';
 import 'package:sochat_client/context/context_menu_button.dart';
 import 'package:sochat_client/modules/users/user.dart';
+import 'package:sochat_client/so_ui/common/so_avatar.dart';
 import 'package:sochat_client/so_ui/common/so_button.dart';
 
 class AvatarButton extends ConsumerWidget {
@@ -49,10 +50,16 @@ class AvatarButton extends ConsumerWidget {
             Positioned(
               top: -10,
               bottom: -10,
+              child: SoAvatar(
+                radius: 20,
+                avatarBytes: user?.avatarBytes,
+                nickname: user?.nickname,
+              ),
+              /*
               child: CircleAvatar(
                 radius: 20,
                 child: Text((user != null ? (user!.nickname) : "  ")[0]),
-              ),
+              ),*/
             ),
           ],
         ),

@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/modules/friends/friendship.dart';
+import 'package:sochat_client/modules/users/user_service.dart';
 import 'package:sochat_client/modules/websocket/message_packet.dart';
 import 'package:sochat_client/modules/users/user.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
@@ -85,6 +86,7 @@ class FriendsState {
 class FriendsService extends Notifier<FriendsState>{
   late final WebSocketService _webSocket;
   late final KeyService _keyService;
+  late final UserService _userService;
   User? get currentUser => ref.read(authServiceProvider).currentUser;
 
   StreamSubscription? _subscription;
@@ -95,6 +97,7 @@ class FriendsService extends Notifier<FriendsState>{
   @override
   FriendsState build() {
     _keyService = ref.read(keyServiceProvider.notifier);
+    _userService = ref.read(userServiceProvider);
 
     ref.watch(webSocketProvider.future).then((ws) {
       _webSocket = ws;
@@ -176,8 +179,8 @@ class FriendsService extends Notifier<FriendsState>{
       final friendName = friend["username"].isNotEmpty ? friend["username"] : "Null";
       final myName = user["username"].isNotEmpty ? user["username"] : "Null";
 
-      Friendship friendship = Friendship(user: User(id: user["id"], nickname: user["nickname"], username: myName, x25519PublicKey: user["x25519PublicKey"]),
-          friend: User(id: friend["id"], nickname: friend["nickname"], username: friendName, x25519PublicKey: friend["x25519PublicKey"]), status: FriendshipStatus.values.byName(status));
+      Friendship friendship = Friendship(user: await _userService.resolveUser(user),
+          friend: await _userService.resolveUser(friend), status: FriendshipStatus.values.byName(status));
       addUpdate(friendship);
     }
   }
