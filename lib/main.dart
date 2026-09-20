@@ -10,7 +10,7 @@ import 'package:sochat_client/extenstions/no_transitions.dart';
 import 'package:sochat_client/modules/common/local_storage_service.dart';
 import 'package:sochat_client/modules/media/media_service.dart';
 import 'package:sochat_client/modules/media_capture/capture_service.dart';
-import 'package:sochat_client/modules/websocket/web_socket_service.dart';
+import 'package:sochat_client/modules/network/tcp_socket_service.dart';
 import 'package:sochat_client/so_ui/notifications/so_notification.dart';
 import 'package:sochat_client/so_ui/chatscreen/chat_screen.dart';
 import 'package:sochat_client/so_ui/notifications/notifications_overlay.dart';
@@ -90,7 +90,7 @@ void main() async {
       valueListenable: containerHolder,
       builder: (context, container, _) {
         container.read(notificationsProvider);
-        container.read(webSocketProvider);
+        container.read(tcpSocketProvider);
         return UncontrolledProviderScope(
           key: ValueKey(container),
           container: container,
@@ -357,7 +357,7 @@ class _SoDesignPageState extends ConsumerState<SoDesignPage> with TrayListener {
     else {
       Future.microtask(() {
         keyService.generateProfile();
-        keyService.addServer("localhost", "http://localhost:8081");
+        keyService.addServer("localhost", "localhost:8081");
       });
     }
   }

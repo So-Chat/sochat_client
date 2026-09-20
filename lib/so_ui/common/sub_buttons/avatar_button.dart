@@ -25,7 +25,7 @@ class AvatarButton extends ConsumerWidget {
         anchorKey: buttonKey,
         width: 40,
         height: 30,
-        color: Colors.white,
+        color: Colors.transparent,
         alignment: Alignment.center,
         onPressed: () {
           final RenderBox box =

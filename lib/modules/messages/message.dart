@@ -28,7 +28,7 @@ class Message {
 
   factory Message.fromJson(Map<String, dynamic> json, User sender) {
     final ts = json['timestamp'];
-    DateTime dateTime = DateTime(
+    DateTime dateTime = DateTime.utc(
       ts[0],
       ts[1],
       ts[2],

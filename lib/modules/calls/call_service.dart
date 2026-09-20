@@ -18,8 +18,8 @@ import 'package:sochat_client/modules/chats/chat.dart';
 import 'package:sochat_client/modules/chats/chat_service.dart';
 import 'package:sochat_client/modules/media_capture/capture_service.dart';
 import 'package:sochat_client/modules/users/user_service.dart';
-import 'package:sochat_client/modules/websocket/message_packet.dart';
-import 'package:sochat_client/modules/websocket/web_socket_service.dart';
+import 'package:sochat_client/modules/network/message_packet.dart';
+import 'package:sochat_client/modules/network/tcp_socket_service.dart';
 
 final callServiceProvider = FutureProvider<CallService>((ref) async {
   final capture = await ref.watch(mediaCaptureServiceProvider.future);
@@ -29,7 +29,7 @@ final callServiceProvider = FutureProvider<CallService>((ref) async {
   });
 
   return CallService(
-    await ref.read(webSocketProvider.future),
+    await ref.read(tcpSocketProvider.future),
     capture,
     ref.read(chatsServiceProvider.notifier),
     ref,
@@ -39,7 +39,7 @@ final callServiceProvider = FutureProvider<CallService>((ref) async {
 final mediaStateProvider = StateProvider<CallMediaState?>((ref) => null);
 
 class CallService {
-  final WebSocketService _webSocket;
+  final TcpSocketService _webSocket;
   final CaptureService _captureService;
   final ChatService _chatService;
 

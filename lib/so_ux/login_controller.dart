@@ -6,8 +6,8 @@ import 'package:sochat_client/main.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/common/local_storage_service.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
-import 'package:sochat_client/modules/websocket/message_packet.dart';
-import 'package:sochat_client/modules/websocket/web_socket_service.dart';
+import 'package:sochat_client/modules/network/message_packet.dart';
+import 'package:sochat_client/modules/network/tcp_socket_service.dart';
 import 'package:sochat_client/so_ui/chatscreen/chat_screen.dart';
 
 
@@ -30,8 +30,11 @@ class LoginController{
       String username,
       int profileIndex,
       int serverIndex,
-      WidgetRef widgetRef
+      WidgetRef ref
       ) async {
+
+    final tcpSocketService = await ref.read(tcpSocketProvider.future);
+    await tcpSocketService.connect();
 
     if (username == ""){
       throw SoException("Username can't be null!");
@@ -50,7 +53,8 @@ class LoginController{
           username,
           profile,
           ip,
-          widgetRef);
+          ref);
+      print(response);
 
       if (response.payload["success"]){
         MessagePacket verifyResponse = await _authService.verify(
@@ -58,11 +62,11 @@ class LoginController{
             profile,
             response.payload["challenge"].toString(),
             ip,
-            widgetRef);
+            ref);
         if (!verifyResponse.payload["success"]) {
           throw Exception(response.payload["server_message"]);
         }
-        await _verify(context, verifyResponse, widgetRef);
+        await _verify(context, verifyResponse, ref);
       }
       else {
         throw Exception(response.payload["server_message"]);
@@ -74,11 +78,10 @@ class LoginController{
   }
 
   Future<void> _verify(BuildContext context, MessagePacket messagePacket, WidgetRef ref) async {
-    final webSocketService = await ref.read(webSocketProvider.future);
-    webSocketService.connect();
+    final tcpSocketService = await ref.read(tcpSocketProvider.future);
 
     _authService.token = messagePacket.payload["token"];
-    _authService.setCurrentUser(await webSocketService.authenticate(messagePacket.payload["token"]));
+    _authService.setCurrentUser(await tcpSocketService.authenticate(messagePacket.payload["token"]));
 
     ref.read(localStorageServiceProvider).saveSession();
 
@@ -87,13 +90,13 @@ class LoginController{
   }
 
   Future<void> authenticateWithActiveSession(BuildContext context, WidgetRef ref) async{
-    final webSocketService = await ref.read(webSocketProvider.future);
-    webSocketService.connect();
+    final tcpSocketService = await ref.read(tcpSocketProvider.future);
+    tcpSocketService.connect();
 
     String token = await ref.read(localStorageServiceProvider).getSessionAndSetSelectedKeys();
 
     _authService.token = token;
-    _authService.setCurrentUser(await webSocketService.authenticate(token));
+    _authService.setCurrentUser(await tcpSocketService.authenticate(token));
 
     Navigator.push(
         context, MaterialPageRoute(builder: (context) => ChatScreen()));

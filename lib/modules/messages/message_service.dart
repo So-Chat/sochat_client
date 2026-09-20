@@ -7,9 +7,9 @@ import 'package:sochat_client/modules/chats/chat_service.dart';
 import 'package:sochat_client/modules/media/media.dart';
 import 'package:sochat_client/modules/media/media_service.dart';
 import 'package:sochat_client/modules/users/user_service.dart';
-import 'package:sochat_client/modules/websocket/message_packet.dart';
+import 'package:sochat_client/modules/network/message_packet.dart';
 import 'package:sochat_client/modules/users/user.dart';
-import 'package:sochat_client/modules/websocket/web_socket_service.dart';
+import 'package:sochat_client/modules/network/tcp_socket_service.dart';
 
 import '../keys/key_service.dart';
 import 'message.dart';
@@ -32,7 +32,7 @@ class MessagesState {
 }
 
 class MessageService extends Notifier<MessagesState> {
-  late final WebSocketService _webSocket;
+  late final TcpSocketService _webSocket;
   late final KeyService _keyService;
   late final ChatService _chatService;
   late final UserService _userService;
@@ -53,7 +53,7 @@ class MessageService extends Notifier<MessagesState> {
       _subscription?.cancel();
     });
 
-    ref.watch(webSocketProvider.future).then((ws) {
+    ref.watch(tcpSocketProvider.future).then((ws) {
       _webSocket = ws;
       startListen();
     });

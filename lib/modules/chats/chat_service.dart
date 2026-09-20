@@ -16,9 +16,9 @@ import 'package:sochat_client/modules/media/media_service.dart';
 import 'package:sochat_client/modules/messages/message.dart';
 import 'package:sochat_client/modules/messages/message_service.dart';
 import 'package:sochat_client/modules/users/user_service.dart';
-import 'package:sochat_client/modules/websocket/message_packet.dart';
+import 'package:sochat_client/modules/network/message_packet.dart';
 import 'package:sochat_client/modules/users/user.dart';
-import 'package:sochat_client/modules/websocket/web_socket_service.dart';
+import 'package:sochat_client/modules/network/tcp_socket_service.dart';
 
 import '../common/auth_service.dart';
 import '../keys/key_service.dart';
@@ -38,7 +38,7 @@ class ChatsState {
 }
 
 class ChatService extends Notifier<ChatsState> {
-  late final WebSocketService _webSocket;
+  late final TcpSocketService _webSocket;
   late final KeyService _keyService;
   late final UserService _userService;
   late final MediaService _mediaService;
@@ -53,7 +53,7 @@ class ChatService extends Notifier<ChatsState> {
     _userService = ref.read(userServiceProvider);
     _mediaService = ref.read(mediaServiceProvider);
 
-    ref.watch(webSocketProvider.future).then((ws) {
+    ref.watch(tcpSocketProvider.future).then((ws) {
       _webSocket = ws;
       startListen();
     });

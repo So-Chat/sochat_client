@@ -72,7 +72,7 @@ class MediaService {
     SecretKey? aesKey,
   }) async {
     return mediaFile.decodedFileBytes ??= () async {
-      final ip = _keyService.servers.entries
+      final ip = "http://" + _keyService.servers.entries
           .toList()[ref.read(keyServiceProvider).selectedServer]
           .value;
 
@@ -84,7 +84,7 @@ class MediaService {
   }
 
   Future<void> deleteMedia(String ip, Media mediaFile) async {
-    var url = Uri.parse(('$ip/media?id=${mediaFile.mediaId}').toString());
+    var url = Uri.parse(('http://$ip/media?id=${mediaFile.mediaId}').toString());
     var request = await http.delete(
       url,
       headers: {'Authorization': 'Bearer ${_authService.token!}'},
@@ -98,7 +98,7 @@ class MediaService {
     SecretKey? aesKey,
     bool isAvatar = false,
   }) async {
-    var url = Uri.parse(('$ip/media').toString());
+    var url = Uri.parse(('http://$ip/media').toString());
     var request = http.MultipartRequest("POST", url);
 
     // Set chat id and send authorization token
@@ -170,7 +170,7 @@ class MediaService {
   }
 
   Future<Uint8List> resolveMediaBytes(String ip, String mediaId) async {
-    final url = "$ip/media/${mediaId}";
+    final url = "http://$ip/media/${mediaId}";
     final response = await http.get(Uri.parse(url));
     return response.bodyBytes;
   }
@@ -201,7 +201,7 @@ class MediaService {
     Media mediaFile, {
     SecretKey? aesKey,
   }) async {
-    final url = Uri.parse("$ip/media/${mediaFile.mediaId}");
+    final url = Uri.parse("http://$ip/media/${mediaFile.mediaId}");
     final request = http.Request("GET", url);
 
     final response = await request.send();

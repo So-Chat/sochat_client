@@ -4,11 +4,11 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/modules/friends/friendship.dart';
 import 'package:sochat_client/modules/users/user_service.dart';
-import 'package:sochat_client/modules/websocket/message_packet.dart';
+import 'package:sochat_client/modules/network/message_packet.dart';
 import 'package:sochat_client/modules/users/user.dart';
 import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
-import 'package:sochat_client/modules/websocket/web_socket_service.dart';
+import 'package:sochat_client/modules/network/tcp_socket_service.dart';
 
 //final friendsServiceProvider = StateNotifierProvider<FriendsService, FriendsState>(
 //      (ref) => FriendsService(ref.read(webSocketProvider.future), ref.read(keyServiceProvider.notifier), ref.read(authServiceProvider), ref.read(currentUserProvider), ref),);
@@ -84,7 +84,7 @@ class FriendsState {
 
 
 class FriendsService extends Notifier<FriendsState>{
-  late final WebSocketService _webSocket;
+  late final TcpSocketService _webSocket;
   late final KeyService _keyService;
   late final UserService _userService;
   User? get currentUser => ref.read(authServiceProvider).currentUser;
@@ -99,7 +99,7 @@ class FriendsService extends Notifier<FriendsState>{
     _keyService = ref.read(keyServiceProvider.notifier);
     _userService = ref.read(userServiceProvider);
 
-    ref.watch(webSocketProvider.future).then((ws) {
+    ref.watch(tcpSocketProvider.future).then((ws) {
       _webSocket = ws;
       startListen();
     });
