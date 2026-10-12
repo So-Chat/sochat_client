@@ -90,6 +90,12 @@ class KeyP {
     );
   }
 
+  Future<SimpleKeyPair> getX25519KeyPair() async {
+    return await X25519().newKeyPairFromSeed(
+      Uint8List.fromList(privateKeyX!),
+    );
+  }
+
   Uint8List x509ed25519PublicKey() => encodeEd25519PublicKeyForJava(publicKeyEd);
   Uint8List x509x25519PublicKey() => encodeX25519PublicKeyForJava(publicKeyX!);
 

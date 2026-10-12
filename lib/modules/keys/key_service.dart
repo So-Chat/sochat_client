@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart';
 import 'package:sochat_client/modules/keys/key.dart';
@@ -357,6 +358,38 @@ class KeyService extends Notifier<KeyServiceState> {
     return base64Encode(await encryptWithAes(contentBytes, aesKey));
   }
 
+  Future<String> decryptBase64WithAesToBase64(String content, SecretKey aesKey) async {
+    final contentBytes = utf8.encode(content);
+    return base64Encode(await encryptWithAes(contentBytes, aesKey));
+  }
+  Future<List<int>> decryptBase64WithAesToBytes(String content, SecretKey aesKey) async {
+    final contentBytes = utf8.encode(content);
+    return await encryptWithAes(contentBytes, aesKey);
+  }
+  Future<String> decryptBytesWithAesToBase64(List<int> contentBytes, SecretKey aesKey) async {
+    return base64Encode(await encryptWithAes(contentBytes, aesKey));
+  }
+
+  Future<List<int>> decryptWithAes(List<int> contentBytes, SecretKey aesKey) async {
+    final algorithm = AesGcm.with256bits();
+
+    final nonce = contentBytes.sublist(0, 12);
+    final mac = Mac(contentBytes.sublist(contentBytes.length - 16));
+    final cipherText = contentBytes.sublist(12, contentBytes.length - 16);
+
+    final secretBox = SecretBox(
+      cipherText,
+      nonce: nonce,
+      mac: mac,
+    );
+
+    final decrypted = await algorithm.decrypt(
+      secretBox,
+      secretKey: aesKey,
+    );
+
+    return decrypted;
+  }
 
   Future<List<int>> encryptWithAes(List<int> contentBytes, SecretKey aesKey) async {
     final algorithm = AesGcm.with256bits();
@@ -405,33 +438,16 @@ class KeyService extends Notifier<KeyServiceState> {
     );
   }
 
+  Future<List<int>> deriveAesKey(List<int> secretKeyBytes) async {
+    final hkdf = Hkdf(
+      hmac: Hmac.sha256(),
+      outputLength: 32);
 
-  Future<String> decryptWithAes(String base64EncodedContent, SecretKey aesKey) async {
-    try {
-      final algorithm = AesGcm.with256bits();
-
-      final combined = base64Decode(base64EncodedContent);
-
-      final nonce = combined.sublist(0, 12);
-      final mac = Mac(combined.sublist(combined.length - 16));
-      final cipherText = combined.sublist(12, combined.length - 16);
-
-      final secretBox = SecretBox(
-        cipherText,
-        nonce: nonce,
-        mac: mac,
-      );
-
-      final decrypted = await algorithm.decrypt(
-        secretBox,
-        secretKey: aesKey,
-      );
-
-      return utf8.decode(decrypted);
-    }
-    catch (e){
-      return "Couldn't decrypt content";
-    }
+    final SecretKey secretKey = SecretKey(secretKeyBytes);
+    final derivedKey = await hkdf.deriveKey(info: "SoChat-E2E-AES-Key".codeUnits, secretKey: secretKey);
+    debugPrint("Derived AES: ${derivedKey.bytes}");
+    return derivedKey.bytes;
   }
+
 
 }

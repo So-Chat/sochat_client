@@ -11,6 +11,7 @@ import 'package:sochat_client/modules/common/local_storage_service.dart';
 import 'package:sochat_client/modules/media/media_service.dart';
 import 'package:sochat_client/modules/media_capture/capture_service.dart';
 import 'package:sochat_client/modules/network/tcp_socket_service.dart';
+import 'package:sochat_client/modules/network/web_socket_service.dart';
 import 'package:sochat_client/so_ui/notifications/so_notification.dart';
 import 'package:sochat_client/so_ui/chatscreen/chat_screen.dart';
 import 'package:sochat_client/so_ui/notifications/notifications_overlay.dart';
@@ -408,6 +409,14 @@ class _SoDesignPageState extends ConsumerState<SoDesignPage> with TrayListener {
             TextButton(onPressed: () {
               notificationsManager.addUpdate(SoNotification(title: "youi", content: "nananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananananana", icon: Icons.error_outline));
             }, child: Text("Notification test")),
+            TextButton(onPressed: () async {
+              ref.watch(tcpSocketProvider.future).then((tcpFuture) async {
+                await tcpFuture.connect();
+                final h = await tcpFuture.handshake();
+                debugPrint("$h");
+              });
+
+            }, child: Text("Tcp handshake test")),
           ],
         ),
       ),
