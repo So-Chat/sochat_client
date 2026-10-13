@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/context/notifications/inapp_notifications_manager.dart';
-import 'package:sochat_client/modules/common/auth_service.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
 import 'package:sochat_client/modules/users/user.dart';
 import 'package:sochat_client/modules/users/user_service.dart';

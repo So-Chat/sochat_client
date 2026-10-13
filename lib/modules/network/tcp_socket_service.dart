@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
@@ -237,6 +236,10 @@ class TcpSocketService{
     return user;
   }
 
+  /*
+    TODO: Move encryption to KeyService
+    Manage handshake without creating a variable for it
+  */
   Future<List<int>> handshake() async {
     final ephermalKeyPair = await KeyP.generate();
 

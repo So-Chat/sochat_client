@@ -11,7 +11,6 @@ import 'package:sochat_client/modules/common/local_storage_service.dart';
 import 'package:sochat_client/modules/media/media_service.dart';
 import 'package:sochat_client/modules/media_capture/capture_service.dart';
 import 'package:sochat_client/modules/network/tcp_socket_service.dart';
-import 'package:sochat_client/modules/network/web_socket_service.dart';
 import 'package:sochat_client/so_ui/notifications/so_notification.dart';
 import 'package:sochat_client/so_ui/chatscreen/chat_screen.dart';
 import 'package:sochat_client/so_ui/notifications/notifications_overlay.dart';

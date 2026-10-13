@@ -358,16 +358,12 @@ class KeyService extends Notifier<KeyServiceState> {
     return base64Encode(await encryptWithAes(contentBytes, aesKey));
   }
 
-  Future<String> decryptBase64WithAesToBase64(String content, SecretKey aesKey) async {
-    final contentBytes = utf8.encode(content);
-    return base64Encode(await encryptWithAes(contentBytes, aesKey));
+  Future<String> decryptBase64WithAesToString(String content, SecretKey aesKey) async {
+    return utf8.decode(await decryptBase64WithAesToBytes(content, aesKey));
   }
   Future<List<int>> decryptBase64WithAesToBytes(String content, SecretKey aesKey) async {
-    final contentBytes = utf8.encode(content);
-    return await encryptWithAes(contentBytes, aesKey);
-  }
-  Future<String> decryptBytesWithAesToBase64(List<int> contentBytes, SecretKey aesKey) async {
-    return base64Encode(await encryptWithAes(contentBytes, aesKey));
+    final contentBytes = base64Decode(content);
+    return await decryptWithAes(contentBytes, aesKey);
   }
 
   Future<List<int>> decryptWithAes(List<int> contentBytes, SecretKey aesKey) async {

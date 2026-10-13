@@ -308,7 +308,7 @@ class ChatService extends Notifier<ChatsState> {
         final messageJson = chatMap["lastMessage"];
 
         if (chat.findChatKeyByVersion(chat.chatKeys.last.keyVersion) != null) {
-          messageJson['content'] = await _keyService.decryptBase64WithAesToBase64(
+          messageJson['content'] = await _keyService.decryptBase64WithAesToString(
             messageJson['content'],
             chat.findChatKeyByVersion(chat.chatKeys.last.keyVersion)!.key,
           );
