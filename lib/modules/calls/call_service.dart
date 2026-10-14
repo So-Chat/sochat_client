@@ -222,7 +222,7 @@ class CallService {
             'sdp_mid': candidate.sdpMid,
             'sdp_mline_index': candidate.sdpMLineIndex,
           },
-        ).toJson(),
+        ),
       );
     };
 
@@ -265,7 +265,7 @@ class CallService {
           payload: {"sdp": offer.sdp, "user_id": userId, "chat_id": chatId},
         );
 
-        _webSocket.addToSink(messagePacket.toJson());
+        _webSocket.addToSink(messagePacket);
       }
     } catch (e) {
       throw Exception(e);
@@ -308,7 +308,7 @@ class CallService {
       type: "call_answer",
       payload: {"sdp": answer.sdp},
     );
-    _webSocket.addToSink(messagePacket.toJson());
+    _webSocket.addToSink(messagePacket);
   }
 
   Future<void> handleAnswer(String sdp, int chatId, int userId) async {
@@ -355,7 +355,7 @@ class CallService {
 
   Future<void> callEnd(int chatId) async {
     _webSocket.addToSink(
-      MessagePacket(type: "call_end", payload: {}).toJson(),
+      MessagePacket(type: "call_end", payload: {}),
     );
     await handleCallEnd(chatId);
   }

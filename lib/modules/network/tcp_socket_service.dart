@@ -7,6 +7,7 @@ import 'package:cryptography/cryptography.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/context/notifications/inapp_notifications_manager.dart';
+import 'package:sochat_client/extenstions/utils.dart';
 import 'package:sochat_client/modules/keys/key.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
 import 'package:sochat_client/modules/users/user.dart';
@@ -44,13 +45,12 @@ class TcpSocketService{
   final _callController = StreamController<MessagePacket>.broadcast();
   Stream<MessagePacket> get callMessages => _callController.stream;
 
-  final _pendingRequests = <String, Completer>{};
+  final _pendingRequests = <int, Completer>{};
   Timer? _pingTimer;
   final Ref _ref;
   final KeyService _keyService;
 
   SecretKey? aesKey;
-  Completer handshakeCompleter = Completer();
 
   TcpSocketService(this._ref, this._keyService);
 
@@ -92,79 +92,126 @@ class TcpSocketService{
     // Maybe delete pinging later, i will use low-level pingsr
     //_startPing();
 
-    socket!.listen((dataWithLength) async {
+    socket!.listen((fullData) async {
       // TODO: MAKE ACTUALLY LISTENING BYTES
-      Uint8List data = dataWithLength.sublist(4);
+      final rawDataLength = fullData.length - 4;
+      final rawDataWithRequestId = fullData.sublist(4);
 
-      debugPrint("RAW BYTE MESSAGE: $data");
-      if (data.length <= 64) {
-        handshakeCompleter.complete(Uint8List.fromList(data));
-        return;
-      }
-      if (aesKey == null) return;
+      if (aesKey == null) {
+        final data = rawDataWithRequestId.sublist(0, rawDataLength - 4);
+        final requestId = ByteData.sublistView(rawDataWithRequestId.sublist(rawDataLength - 4)).getUint32(0);
 
-      final decryptData = await _keyService.decryptWithAes(data, aesKey!);
-
-      String message = utf8.decode(decryptData);
-
-      debugPrint("RAW MESSAGE: $message");
-      MessagePacket messagg = MessagePacket.fromJson(jsonDecode(message));
-
-      final requestId = messagg.payload["requestId"];
-      if (requestId != null && _pendingRequests.containsKey(requestId)) {
-        final safePayload = Map<String, dynamic>.from(messagg.payload);
-
-        messagg = MessagePacket(
-          type: messagg.type,
-          payload: safePayload,
-        );
-        _pendingRequests[requestId]!.complete(messagg);
-        _pendingRequests.remove(requestId);
-      }
-
-      if (messagg.payload["success"] == false){
-        _ref.read(inAppNotificationsManagerProvider.notifier).addUpdate(
-          SoNotification(
-            icon: Icons.error_outline,
-            title: "Error",
-            content: messagg.payload["server_message"],
-          ),
-        );
-      }
-
-      switch (messagg.type) {
-        case "friend_request":
-        case "friend_accept":
-        case "friend_decline":
-        case "friend_remove":
-        case "block": {
-          _friendsController.add(messagg);
-          break;
+        if (requestId != 0 && _pendingRequests.containsKey(requestId)) {
+          if (_pendingRequests[requestId] is Completer<Uint8List>) {
+            _pendingRequests[requestId]!.complete(data);
+            _pendingRequests.remove(requestId);
+            return;
+          }
+        } else {
+          final pending = _pendingRequests.remove(requestId);
+          if (pending != null && !pending.isCompleted) {
+            pending.completeError(
+              StateError('Unexpected response type for request $requestId'),
+            );
+          }
+          return;
         }
-        case "authenticate":
-        case "chat_create":
-        case "chat_add_participant":
-        case "chat_delete": {
-          _chatsController.add(messagg);
-          break;
+      } else {
+        final decryptDataWithRequestId = await _keyService.decryptWithAes(rawDataWithRequestId, aesKey!);
+        final decryptData = Uint8List.fromList(decryptDataWithRequestId);
+
+        if (decryptData.length < 4) {
+          throw const FormatException('Packet too short');
         }
-        case "message_send":
-        case "message_edit":
-        case "message_read":
-        case "message_delete":{
-          _messagesController.add(messagg);
-          break;
+        debugPrint("$decryptData");
+        final dataLength = decryptData.length - 4;
+        final data = decryptData.sublist(0, dataLength);
+
+        final requestId = ByteData.sublistView(
+          decryptData,
+          dataLength,
+        ).getUint32(0, Endian.big);
+
+        MessagePacket? messagg;
+
+        if (requestId != 0 && _pendingRequests.containsKey(requestId)) {
+          if (_pendingRequests[requestId] is Completer<MessagePacket>) {
+            final message = utf8.decode(data);
+            debugPrint("RAW MESSAGE: $message");
+            messagg = MessagePacket.fromJson(jsonDecode(message));
+            debugPrint("got packet with request: ${messagg.toJson()}");
+            final safePayload = Map<String, dynamic>.from(messagg.payload);
+
+            messagg = MessagePacket(
+              requestId: requestId,
+              type: messagg.type,
+              payload: safePayload,
+            );
+            _pendingRequests[requestId]!.complete(messagg);
+            _pendingRequests.remove(requestId);
+          } else if (_pendingRequests[requestId] is Completer<Uint8List>) {
+            _pendingRequests[requestId]!.complete(data);
+            _pendingRequests.remove(requestId);
+            return;
+          } else {
+            final pending = _pendingRequests.remove(requestId);
+            if (pending != null && !pending.isCompleted) {
+              pending.completeError(
+                StateError('Unexpected response type for request $requestId'),
+              );
+            }
+            return;
+          }
+        } else {
+          final message = utf8.decode(data);
+          messagg = MessagePacket.fromJson(jsonDecode(message));
+
+          debugPrint("packet $message");
+          if (messagg.payload["success"] == false){
+            _ref.read(inAppNotificationsManagerProvider.notifier).addUpdate(
+              SoNotification(
+                icon: Icons.error_outline,
+                title: "Error",
+                content: messagg.payload["server_message"],
+              ),
+            );
+          }
+
+          switch (messagg.type) {
+            case "friend_request":
+            case "friend_accept":
+            case "friend_decline":
+            case "friend_remove":
+            case "block": {
+              _friendsController.add(messagg);
+              break;
+            }
+            case "authenticate":
+            case "chat_create":
+            case "chat_add_participant":
+            case "chat_delete": {
+              _chatsController.add(messagg);
+              break;
+            }
+            case "message_send":
+            case "message_edit":
+            case "message_read":
+            case "message_delete":{
+              _messagesController.add(messagg);
+              break;
+            }
+            case "call_end":
+            case "call_ice":
+            case "call_offer":
+            case "call_answer":
+            case "call_accept":{
+                _callController.add(messagg);
+                break;
+            }
+            default:
+              //debugPrint("Unhandled type: ${messagg.type}");
+          }
         }
-        case "call_end":
-        case "call_ice":
-        case "call_offer":
-        case "call_answer":
-        case "call_accept":{
-            _callController.add(messagg);
-            break;
-        }
-        default:
-          //debugPrint("Unhandled type: ${messagg.type}");
       }
     },
         onDone: () {
@@ -176,44 +223,78 @@ class TcpSocketService{
     aesKey = SecretKey(await handshake());
   }
 
-  Future<void> addBytesToSink(Uint8List bytes, {withLength = true}) async {
-    if (socket == null) {
-      return;
-    }
-    if (withLength) {
-      int length = bytes.length;
-      Uint8List lengthBuffer = Uint8List(4);
-      ByteData.view(lengthBuffer.buffer).setInt32(0, length, Endian.big);
+  Future<void> addBytesToSink(Uint8List bytes) async {
+    if (socket == null) return;
 
-      socket!.add(lengthBuffer);
-    }
+    final lengthBuffer = Uint8List(4);
+    ByteData.sublistView(lengthBuffer).setUint32(0, bytes.length, Endian.big);
+
+    socket!.add(lengthBuffer);
     socket!.add(bytes);
   }
 
-  Future<void> addToSink(Map<String, dynamic> message) async {
+  Future<void> addToSink(MessagePacket messagePacket) async {
     if (socket == null) {
       return;
     }
-    Uint8List messageBytes = utf8.encode(jsonEncode(message));
 
-    debugPrint("Sending map: $message");
+    final messageBytes = utf8.encode(jsonEncode(messagePacket.toJson()));
+    final requestIdBytes = Utils.encodeRequestId(messagePacket.requestId);
 
-    final cipherMessageBytes = await _keyService.encryptWithAes(messageBytes, aesKey!);
+
+
+    final bytes = Uint8List.fromList([
+      ...messageBytes,
+      ...requestIdBytes,
+    ]);
+
+    final cipherMessageBytes = await _keyService.encryptWithAes(bytes, aesKey!);
     await addBytesToSink(Uint8List.fromList(cipherMessageBytes));
   }
 
 
-  Future<dynamic> sendRequest(MessagePacket messagePacket, {int duration = 5}) async {
+  Future<Uint8List> sendBytesRequest(Uint8List bytes, {int duration = 1, bool encryption = false}) async {
     final requestId = _requestIdGenerator.nextId();
-    final completer = Completer();
+    final completer = Completer<Uint8List>();
+    _pendingRequests[requestId] = completer;
+
+    final requestIdBytes = Utils.encodeRequestId(requestId);
+
+    debugPrint("sent bytes $bytes");
+
+    final packet = Uint8List.fromList([
+      ...bytes,
+      ...requestIdBytes
+    ]);
+    if (encryption) {
+      final cipherMessageBytes = await _keyService.encryptWithAes(packet, aesKey!);
+      await addBytesToSink(Uint8List.fromList(cipherMessageBytes));
+    }
+    else {
+      await addBytesToSink(packet);
+    }
+
+    return completer.future.timeout(
+      Duration(minutes: duration),
+      onTimeout: () {
+        _pendingRequests.remove(requestId);
+        throw TimeoutException("Request $requestId timed out after 5 minutes");
+      },
+    );
+
+  }
+
+  Future<MessagePacket> sendRequest(MessagePacket messagePacket, {int duration = 1}) async {
+    final requestId = _requestIdGenerator.nextId();
+    final completer = Completer<MessagePacket>();
     _pendingRequests[requestId] = completer;
 
     // Use only if need to debug what client sends to server, cuz it makes a mess from logs
     //print(messagePacket.toJson().toString());
 
-    messagePacket.payload["requestId"] = requestId;
+    messagePacket.requestId = requestId;
 
-    await addToSink(messagePacket.toJson());
+    await addToSink(messagePacket);
     return completer.future.timeout(
       Duration(minutes: duration),
       onTimeout: () {
@@ -237,43 +318,27 @@ class TcpSocketService{
   }
 
   /*
-    TODO: Move encryption to KeyService
-    Manage handshake without creating a variable for it
+    TODO: Manage handshake without creating a variable for it
   */
   Future<List<int>> handshake() async {
     final ephermalKeyPair = await KeyP.generate();
 
-    final completer = Completer<Uint8List>();
-    handshakeCompleter = completer;
-
-    await addBytesToSink(
+    final serverPublicKeyBytes = await sendBytesRequest(
       Uint8List.fromList(ephermalKeyPair.publicKeyX!),
-      withLength: true,
     );
+    debugPrint("success handshake");
+    return _keyService.confirmHandshake(ephermalKeyPair, serverPublicKeyBytes);
 
-    final serverPublicKeyBytes = await completer.future.timeout(
-      const Duration(seconds: 5),
-    );
-
-    final algorithm = X25519();
-
-    final sharedSecret = await algorithm.sharedSecretKey(
-      keyPair: await ephermalKeyPair.getX25519KeyPair(),
-      remotePublicKey: SimplePublicKey(serverPublicKeyBytes, type: KeyPairType.x25519),
-    );
-
-    final sharedSecretBytes = await sharedSecret.extractBytes();
-
-    return await _keyService.deriveAesKey(sharedSecretBytes);
   }
 }
 
 class RequestIdGenerator {
-  int _counter = 0;
+  int _currentId = 1;
 
-  String nextId() {
-    final timestamp = DateTime.now().microsecondsSinceEpoch;
-    _counter++;
-    return '$timestamp-$_counter';
+  int nextId() {
+    if (_currentId >= 0x7FFFFFFF) {
+      _currentId = 1;
+    }
+    return ++_currentId;
   }
 }

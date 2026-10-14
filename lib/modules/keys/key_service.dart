@@ -445,5 +445,19 @@ class KeyService extends Notifier<KeyServiceState> {
     return derivedKey.bytes;
   }
 
+  Future<List<int>> confirmHandshake(KeyP keyPair, List<int> serverPublicKeyBytes) async {
+    final algorithm = X25519();
+
+    final sharedSecret = await algorithm.sharedSecretKey(
+      keyPair: await keyPair.getX25519KeyPair(),
+      remotePublicKey: SimplePublicKey(serverPublicKeyBytes, type: KeyPairType.x25519),
+    );
+
+    final sharedSecretBytes = await sharedSecret.extractBytes();
+
+    return await deriveAesKey(sharedSecretBytes);
+
+  }
+
 
 }
