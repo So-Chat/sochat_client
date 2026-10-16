@@ -54,8 +54,6 @@ class LoginController{
           profile,
           ip,
           ref);
-      print(response);
-
       if (response.payload["success"]){
         MessagePacket verifyResponse = await _authService.verify(
             context, username,

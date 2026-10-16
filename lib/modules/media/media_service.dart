@@ -72,7 +72,7 @@ class MediaService {
     SecretKey? aesKey,
   }) async {
     return mediaFile.decodedFileBytes ??= () async {
-      final ip = "http://" + _keyService.servers.entries
+      final ip = _keyService.servers.entries
           .toList()[ref.read(keyServiceProvider).selectedServer]
           .value;
 

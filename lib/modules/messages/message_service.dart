@@ -152,8 +152,8 @@ class MessageService extends Notifier<MessagesState> {
     });
     final request = await _webSocket.sendRequest(message);
 
-    if (request.payload["success"] == "true"){
-      receiveMessage(request, chat);
+    if (request.payload["success"] == true){
+      await receiveMessage(request, chat);
     }
   }
 
@@ -179,8 +179,6 @@ class MessageService extends Notifier<MessagesState> {
     }
 
     final messageJson = jsonDecode(requestPacket.payload["message"]);
-    debugPrint("Last key: ${await chat.findLatestChatKey()!.key.extractBytes()}");
-    debugPrint("Chat info: ${chat.chatKeys}");
     messageJson['content'] = await _keyService.decryptBase64WithAesToString((messageJson['content']), chat.findChatKeyByVersion(messageJson['keyVersion'])!.key);
 
     final List<dynamic> mediasJson = messageJson['mediaFiles'] ?? [];
@@ -202,11 +200,7 @@ class MessageService extends Notifier<MessagesState> {
       message = Message.fromJsonWithMedia(
           jsonDecode(requestPacket.payload["message"]), sender, medias);
     }
-
-
-
     addMessage(message);
-
   }
 
   void addMessage(Message message, {bool atStart = true}) {

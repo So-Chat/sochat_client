@@ -23,24 +23,28 @@ class KeyServiceState {
   final Map<String, KeyP> profiles;
   final Map<String, String> servers;
 
+  SecretKey? sessionKey;
+
   KeyServiceState({
     this.selectedProfile = 0,
     this.selectedServer = 0,
     required this.profiles,
     required this.servers,
+    this.sessionKey
   });
 
   KeyServiceState copyWith({
     int? selectedProfile,
     int? selectedServer,
     Map<String, KeyP>? profiles,
-    Map<String, String>? servers})
+    Map<String, String>? servers, SecretKey? sessionKey})
   {
     return KeyServiceState(
       selectedProfile: selectedProfile ?? this.selectedProfile,
       selectedServer: selectedServer ?? this.selectedServer,
       profiles: profiles ?? this.profiles,
       servers: servers ?? this.servers,
+      sessionKey: sessionKey ?? this.sessionKey
     );
   }
 }
@@ -52,6 +56,7 @@ class KeyService extends Notifier<KeyServiceState> {
   int get selectedProfile => state.selectedProfile;
   int get selectedServer => state.selectedServer;
 
+  SecretKey? get sessionKey => state.sessionKey;
 
   @override
   KeyServiceState build() {
@@ -89,6 +94,10 @@ class KeyService extends Notifier<KeyServiceState> {
 
   void addServer(String key, String value) {
     state = state.copyWith(servers: {...servers, key: value});
+  }
+
+  void updateSessionKey(List<int> keyBytes) {
+    state = state.copyWith(sessionKey: SecretKey(keyBytes));
   }
 
   void setServerByKey(String oldKey, String newKey, String newValue) {

@@ -88,7 +88,8 @@ class MessageListState extends ConsumerState<MessageList> {
     final selectedChat = ref.watch(chatControllerProvider).selectedChat;
     final currentUser = ref.watch(authServiceProvider).currentUser;
 
-    messageMap[selectedChat!.id] ??= [];
+    final messages = messageMap[selectedChat!.id] ?? const <Message>[];
+
     return Expanded(
       child: SelectionArea(
         contextMenuBuilder: (context, editableTextState) {
@@ -106,10 +107,9 @@ class MessageListState extends ConsumerState<MessageList> {
             itemPositionsListener: _itemPositionsListener,
             itemScrollController: _itemScrollController,
             reverse: true,
-            itemCount: messageMap[selectedChat.id]!.length,
+            itemCount: messages.length,
             itemBuilder: (context, index) {
-              final message = messageMap[selectedChat.id]![index];
-
+              final message = messages[index];
               return GestureDetector(
                 onSecondaryTapDown: (details) {
                   showContextMenu(

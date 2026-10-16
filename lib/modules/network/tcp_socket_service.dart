@@ -3,17 +3,17 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:cryptography/cryptography.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/context/notifications/inapp_notifications_manager.dart';
 import 'package:sochat_client/extenstions/utils.dart';
 import 'package:sochat_client/modules/keys/key.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
+import 'package:sochat_client/modules/network/packet_handler.dart';
+import 'package:sochat_client/modules/network/tcp_frame_handler.dart';
 import 'package:sochat_client/modules/users/user.dart';
 import 'package:sochat_client/modules/users/user_service.dart';
 import 'package:sochat_client/modules/network/message_packet.dart';
-import 'package:sochat_client/so_ui/notifications/so_notification.dart';
 
 final tcpSocketProvider = FutureProvider<TcpSocketService>((ref) {
   final service = TcpSocketService(ref, ref.read(keyServiceProvider.notifier));
@@ -49,8 +49,6 @@ class TcpSocketService{
   Timer? _pingTimer;
   final Ref _ref;
   final KeyService _keyService;
-
-  SecretKey? aesKey;
 
   TcpSocketService(this._ref, this._keyService);
 
@@ -92,136 +90,27 @@ class TcpSocketService{
     // Maybe delete pinging later, i will use low-level pingsr
     //_startPing();
 
-    socket!.listen((fullData) async {
-      // TODO: MAKE ACTUALLY LISTENING BYTES
-      final rawDataLength = fullData.length - 4;
-      final rawDataWithRequestId = fullData.sublist(4);
+    final packetHandler = PacketHandler(
+      friendsController: _friendsController,
+      chatsController: _chatsController,
+      messagesController: _messagesController,
+      callController: _callController,
+      notificationsManager: _ref.read(inAppNotificationsManagerProvider.notifier),
+      pendingRequests: _pendingRequests,
+      keyService: _keyService
+    );
 
-      if (aesKey == null) {
-        final data = rawDataWithRequestId.sublist(0, rawDataLength - 4);
-        final requestId = ByteData.sublistView(rawDataWithRequestId.sublist(rawDataLength - 4)).getUint32(0);
-
-        if (requestId != 0 && _pendingRequests.containsKey(requestId)) {
-          if (_pendingRequests[requestId] is Completer<Uint8List>) {
-            _pendingRequests[requestId]!.complete(data);
-            _pendingRequests.remove(requestId);
-            return;
-          }
-        } else {
-          final pending = _pendingRequests.remove(requestId);
-          if (pending != null && !pending.isCompleted) {
-            pending.completeError(
-              StateError('Unexpected response type for request $requestId'),
-            );
-          }
-          return;
-        }
-      } else {
-        final decryptDataWithRequestId = await _keyService.decryptWithAes(rawDataWithRequestId, aesKey!);
-        final decryptData = Uint8List.fromList(decryptDataWithRequestId);
-
-        if (decryptData.length < 4) {
-          throw const FormatException('Packet too short');
-        }
-        debugPrint("$decryptData");
-        final dataLength = decryptData.length - 4;
-        final data = decryptData.sublist(0, dataLength);
-
-        final requestId = ByteData.sublistView(
-          decryptData,
-          dataLength,
-        ).getUint32(0, Endian.big);
-
-        MessagePacket? messagg;
-
-        if (requestId != 0 && _pendingRequests.containsKey(requestId)) {
-          if (_pendingRequests[requestId] is Completer<MessagePacket>) {
-            final message = utf8.decode(data);
-            debugPrint("RAW MESSAGE: $message");
-            messagg = MessagePacket.fromJson(jsonDecode(message));
-            debugPrint("got packet with request: ${messagg.toJson()}");
-            final safePayload = Map<String, dynamic>.from(messagg.payload);
-
-            messagg = MessagePacket(
-              requestId: requestId,
-              type: messagg.type,
-              payload: safePayload,
-            );
-            _pendingRequests[requestId]!.complete(messagg);
-            _pendingRequests.remove(requestId);
-          } else if (_pendingRequests[requestId] is Completer<Uint8List>) {
-            _pendingRequests[requestId]!.complete(data);
-            _pendingRequests.remove(requestId);
-            return;
-          } else {
-            final pending = _pendingRequests.remove(requestId);
-            if (pending != null && !pending.isCompleted) {
-              pending.completeError(
-                StateError('Unexpected response type for request $requestId'),
-              );
-            }
-            return;
-          }
-        } else {
-          final message = utf8.decode(data);
-          messagg = MessagePacket.fromJson(jsonDecode(message));
-
-          debugPrint("packet $message");
-          if (messagg.payload["success"] == false){
-            _ref.read(inAppNotificationsManagerProvider.notifier).addUpdate(
-              SoNotification(
-                icon: Icons.error_outline,
-                title: "Error",
-                content: messagg.payload["server_message"],
-              ),
-            );
-          }
-
-          switch (messagg.type) {
-            case "friend_request":
-            case "friend_accept":
-            case "friend_decline":
-            case "friend_remove":
-            case "block": {
-              _friendsController.add(messagg);
-              break;
-            }
-            case "authenticate":
-            case "chat_create":
-            case "chat_add_participant":
-            case "chat_delete": {
-              _chatsController.add(messagg);
-              break;
-            }
-            case "message_send":
-            case "message_edit":
-            case "message_read":
-            case "message_delete":{
-              _messagesController.add(messagg);
-              break;
-            }
-            case "call_end":
-            case "call_ice":
-            case "call_offer":
-            case "call_answer":
-            case "call_accept":{
-                _callController.add(messagg);
-                break;
-            }
-            default:
-              //debugPrint("Unhandled type: ${messagg.type}");
-          }
-        }
-      }
-    },
-        onDone: () {
+    final tcpFrameHandler = TcpFrameHandler(socket!);
+    tcpFrameHandler.packetStream.listen((rawData) async {
+      packetHandler.handleIncomingData(rawData);
+    }, onDone: () {
       debugPrint("Connection done");
     }, onError: (e, st) {
-          debugPrint("WS ERROR: $e");
-        });
-
-    aesKey = SecretKey(await handshake());
+      debugPrint("WS ERROR: $e");
+    });
+    _keyService.updateSessionKey(await handshake());
   }
+
 
   Future<void> addBytesToSink(Uint8List bytes) async {
     if (socket == null) return;
@@ -241,14 +130,11 @@ class TcpSocketService{
     final messageBytes = utf8.encode(jsonEncode(messagePacket.toJson()));
     final requestIdBytes = Utils.encodeRequestId(messagePacket.requestId);
 
-
-
     final bytes = Uint8List.fromList([
       ...messageBytes,
       ...requestIdBytes,
     ]);
-
-    final cipherMessageBytes = await _keyService.encryptWithAes(bytes, aesKey!);
+    final cipherMessageBytes = await _keyService.encryptWithAes(bytes, _keyService.sessionKey!);
     await addBytesToSink(Uint8List.fromList(cipherMessageBytes));
   }
 
@@ -260,14 +146,12 @@ class TcpSocketService{
 
     final requestIdBytes = Utils.encodeRequestId(requestId);
 
-    debugPrint("sent bytes $bytes");
-
     final packet = Uint8List.fromList([
       ...bytes,
       ...requestIdBytes
     ]);
     if (encryption) {
-      final cipherMessageBytes = await _keyService.encryptWithAes(packet, aesKey!);
+      final cipherMessageBytes = await _keyService.encryptWithAes(packet, _keyService.sessionKey!);
       await addBytesToSink(Uint8List.fromList(cipherMessageBytes));
     }
     else {

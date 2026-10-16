@@ -13,17 +13,20 @@ class SoAvatar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    bool containAvatar = avatarBytes != null && avatarBytes!.isNotEmpty;
-    bool containNickname = nickname != null && nickname!.isNotEmpty;
+    final hasAvatar = avatarBytes?.isNotEmpty ?? false;
+    final hasNickname = nickname?.isNotEmpty ?? false;
+
     return CircleAvatar(
-          radius: radius,
-          backgroundColor: !containAvatar ? context.colors.primary : Colors.transparent,
-          backgroundImage: containAvatar
-              ? MemoryImage(avatarBytes!)
-              : null,
-          child: !containAvatar && containNickname
-              ? Text(nickname![0])
-              : Text(""),
-        );
+      radius: radius,
+      backgroundColor: hasAvatar
+          ? Colors.transparent
+          : context.colors.primary,
+      backgroundImage: hasAvatar
+          ? MemoryImage(avatarBytes!)
+          : null,
+      child: !hasAvatar && hasNickname
+          ? Text(nickname![0].toUpperCase(), style: Theme.of(context).textTheme.bodyLarge,)
+          : null,
+    );
   }
 }
