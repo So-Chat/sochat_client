@@ -13,6 +13,7 @@ class PacketHandler {
   final StreamController<MessagePacket> _chatsController;
   final StreamController<MessagePacket> _messagesController;
   final StreamController<MessagePacket> _callController;
+  final StreamController<int> _pingPongController;
   final InAppNotificationsManager _notificationsManager;
   final Map<int, Completer<dynamic>> _pendingRequests;
   final KeyService _keyService;
@@ -22,6 +23,7 @@ class PacketHandler {
     required this._chatsController,
     required this._messagesController,
     required this._callController,
+    required this._pingPongController,
     required this._notificationsManager,
     required this._pendingRequests,
     required this._keyService
@@ -134,11 +136,29 @@ class PacketHandler {
       );
     }
 
-    final response = _parseResponse(decoded);
+    if (_keyService.sessionKey != null) {
+      switch (decoded[0]) {
+        case 0x01: case 0x02: // PING AND PONG
+        _pingPongController.add(decoded[0]);
+        return;
+
+        case 0x03: // JSON
+        break;
+
+        default:
+        throw FormatException(
+          'Unknown packet ID: 0x${decoded[0].toRadixString(16)}',
+        );
+      }
+    }
+
+    final response = _parseResponse(
+      _keyService.sessionKey != null ? Uint8List.sublistView(decoded, 1) : decoded,
+    );
 
     if (response.requestId != 0 &&
         _pendingRequests.containsKey(response.requestId)) {
-      _completePendingRequest(response.requestId, response.data,);
+      _completePendingRequest(response.requestId, response.data);
       return;
     }
 

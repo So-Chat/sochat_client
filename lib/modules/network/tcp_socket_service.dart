@@ -45,6 +45,9 @@ class TcpSocketService{
   final _callController = StreamController<MessagePacket>.broadcast();
   Stream<MessagePacket> get callMessages => _callController.stream;
 
+  final _pingPongController = StreamController<int>.broadcast();
+  Stream<int> get pingPongMessages => _pingPongController.stream;
+
   final _pendingRequests = <int, Completer>{};
   Timer? _pingTimer;
   final Ref _ref;
@@ -95,10 +98,18 @@ class TcpSocketService{
       chatsController: _chatsController,
       messagesController: _messagesController,
       callController: _callController,
+      pingPongController: _pingPongController,
       notificationsManager: _ref.read(inAppNotificationsManagerProvider.notifier),
       pendingRequests: _pendingRequests,
       keyService: _keyService
     );
+
+    pingPongMessages.listen((id) {
+      switch (id) {
+        case 0x01: addBytesToSink(Uint8List.fromList([0x02]), encryption: true); break;
+        case 0x02: //addBytesToSink(Uint8List.fromList([0x01])); break;
+      }
+    });
 
     final tcpFrameHandler = TcpFrameHandler(socket!);
     tcpFrameHandler.packetStream.listen((rawData) async {
@@ -112,14 +123,20 @@ class TcpSocketService{
   }
 
 
-  Future<void> addBytesToSink(Uint8List bytes) async {
+  Future<void> addBytesToSink(Uint8List bytes, {bool encryption = false}) async {
     if (socket == null) return;
 
     final lengthBuffer = Uint8List(4);
-    ByteData.sublistView(lengthBuffer).setUint32(0, bytes.length, Endian.big);
+    List<int> finalBytes = bytes;
+
+    if (encryption) {
+      finalBytes = await _keyService.encryptWithAes(bytes, _keyService.sessionKey!);
+    }
+
+    ByteData.sublistView(lengthBuffer).setUint32(0, finalBytes.length, Endian.big);
 
     socket!.add(lengthBuffer);
-    socket!.add(bytes);
+    socket!.add(finalBytes);
   }
 
   Future<void> addToSink(MessagePacket messagePacket) async {
@@ -131,6 +148,7 @@ class TcpSocketService{
     final requestIdBytes = Utils.encodeRequestId(messagePacket.requestId);
 
     final bytes = Uint8List.fromList([
+      0x03,
       ...messageBytes,
       ...requestIdBytes,
     ]);
@@ -150,13 +168,7 @@ class TcpSocketService{
       ...bytes,
       ...requestIdBytes
     ]);
-    if (encryption) {
-      final cipherMessageBytes = await _keyService.encryptWithAes(packet, _keyService.sessionKey!);
-      await addBytesToSink(Uint8List.fromList(cipherMessageBytes));
-    }
-    else {
-      await addBytesToSink(packet);
-    }
+    await addBytesToSink(packet, encryption: encryption);
 
     return completer.future.timeout(
       Duration(minutes: duration),
