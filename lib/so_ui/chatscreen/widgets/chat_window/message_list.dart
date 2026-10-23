@@ -185,7 +185,7 @@ class MessageListState extends ConsumerState<MessageList> {
                                   itemCount: message.mediaFiles!.length,
                                   itemBuilder: (context, index) {
                                     final file = message.mediaFiles![index];
-                                    return ChatMedia(file, ref);
+                                    return ChatMedia(file, ref, key: ValueKey(file.mediaId));
                                   },
                                 ),
                             ],
