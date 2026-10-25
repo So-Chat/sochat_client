@@ -127,7 +127,7 @@ class CallService {
         {'urls': 'stun:stun.l.google.com:19302'},
         {
           "urls": [
-            'turn:${turnCredentials.ip}:${turnCredentials.port}',
+            'turn:${turnCredentials.ip}:${turnCredentials.port}?transport=tcp',
             'turn:${turnCredentials.ip}:${turnCredentials.port}?transport=udp',
           ],
           "username": turnCredentials.username,
@@ -342,10 +342,13 @@ class CallService {
           ? payload['sdp_mline_index']
           : int.tryParse(payload['sdp_mline_index']?.toString() ?? '0'),
     );
+    if (peerConnection == null) {
+      _pendingCandidates.add(candidateIce);
+      return;
+    }
 
     final remoteDescriptionSet = await peerConnection!.getRemoteDescription();
-
-    if (peerConnection == null || remoteDescriptionSet == null) {
+    if (remoteDescriptionSet == null) {
       _pendingCandidates.add(candidateIce);
       return;
     }
@@ -439,6 +442,7 @@ class CallService {
     final request = await _webSocket.sendRequest(
       MessagePacket(type: "turn_credentials_get", payload: {}),
     );
+    debugPrint("TURN credentials: ${request.payload}");
     return TurnCredentials(
       request.payload["username"],
       request.payload["credential"],

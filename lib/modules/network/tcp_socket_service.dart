@@ -83,43 +83,47 @@ class TcpSocketService{
 
   Future<void> connect() async {
     String socketIp = "${_keyService.servers.entries.toList()[_ref.read(keyServiceProvider).selectedServer].value}";
-    // pingInterval: Duration(seconds: 10)
     if (socket != null) { return; }
 
-    socket = await Socket.connect(
-        socketIp.split(":")[0], int.parse(socketIp.split(":")[1])
-    );
+    try {
+      socket = await Socket.connect(
+          socketIp.split(":")[0], int.parse(socketIp.split(":")[1])
+      );
 
-    // Maybe delete pinging later, i will use low-level pingsr
-    //_startPing();
+      final packetHandler = PacketHandler(
+        friendsController: _friendsController,
+        chatsController: _chatsController,
+        messagesController: _messagesController,
+        callController: _callController,
+        pingPongController: _pingPongController,
+        notificationsManager: _ref.read(inAppNotificationsManagerProvider.notifier),
+        pendingRequests: _pendingRequests,
+        keyService: _keyService
+      );
 
-    final packetHandler = PacketHandler(
-      friendsController: _friendsController,
-      chatsController: _chatsController,
-      messagesController: _messagesController,
-      callController: _callController,
-      pingPongController: _pingPongController,
-      notificationsManager: _ref.read(inAppNotificationsManagerProvider.notifier),
-      pendingRequests: _pendingRequests,
-      keyService: _keyService
-    );
+      pingPongMessages.listen((id) {
+        switch (id) {
+          case 0x01: addBytesToSink(Uint8List.fromList([0x02]), encryption: true); break;
+          case 0x02: //addBytesToSink(Uint8List.fromList([0x01])); break;
+        }
+      });
 
-    pingPongMessages.listen((id) {
-      switch (id) {
-        case 0x01: addBytesToSink(Uint8List.fromList([0x02]), encryption: true); break;
-        case 0x02: //addBytesToSink(Uint8List.fromList([0x01])); break;
-      }
-    });
-
-    final tcpFrameHandler = TcpFrameHandler(socket!);
-    tcpFrameHandler.packetStream.listen((rawData) async {
-      packetHandler.handleIncomingData(rawData);
-    }, onDone: () {
-      debugPrint("Connection done");
-    }, onError: (e, st) {
-      debugPrint("WS ERROR: $e");
-    });
-    _keyService.updateSessionKey(await handshake());
+      final tcpFrameHandler = TcpFrameHandler(socket!);
+      tcpFrameHandler.packetStream.listen((rawData) async {
+        packetHandler.handleIncomingData(rawData);
+      }, onDone: () {
+        socket?.destroy;
+        socket = null;
+        debugPrint("Connection done");
+      }, onError: (e, st) {
+        socket?.destroy;
+        socket = null;
+        debugPrint("WS ERROR: $e");
+      });
+    } catch (e) {
+      socket?.destroy;
+      socket = null;
+    }
   }
 
 
@@ -130,6 +134,9 @@ class TcpSocketService{
     List<int> finalBytes = bytes;
 
     if (encryption) {
+      if (_keyService.sessionKey == null) {
+        _keyService.updateSessionKey(await handshake());
+      }
       finalBytes = await _keyService.encryptWithAes(bytes, _keyService.sessionKey!);
     }
 
@@ -152,8 +159,7 @@ class TcpSocketService{
       ...messageBytes,
       ...requestIdBytes,
     ]);
-    final cipherMessageBytes = await _keyService.encryptWithAes(bytes, _keyService.sessionKey!);
-    await addBytesToSink(Uint8List.fromList(cipherMessageBytes));
+    await addBytesToSink(bytes, encryption: true);
   }
 
 
@@ -174,7 +180,7 @@ class TcpSocketService{
       Duration(minutes: duration),
       onTimeout: () {
         _pendingRequests.remove(requestId);
-        throw TimeoutException("Request $requestId timed out after 5 minutes");
+        throw TimeoutException("Request $requestId timed out after $duration minutes");
       },
     );
 
