@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart';
 import 'package:sochat_client/modules/keys/key.dart';
@@ -22,24 +23,28 @@ class KeyServiceState {
   final Map<String, KeyP> profiles;
   final Map<String, String> servers;
 
+  SecretKey? sessionKey;
+
   KeyServiceState({
     this.selectedProfile = 0,
     this.selectedServer = 0,
     required this.profiles,
     required this.servers,
+    this.sessionKey
   });
 
   KeyServiceState copyWith({
     int? selectedProfile,
     int? selectedServer,
     Map<String, KeyP>? profiles,
-    Map<String, String>? servers})
+    Map<String, String>? servers, SecretKey? sessionKey})
   {
     return KeyServiceState(
       selectedProfile: selectedProfile ?? this.selectedProfile,
       selectedServer: selectedServer ?? this.selectedServer,
       profiles: profiles ?? this.profiles,
       servers: servers ?? this.servers,
+      sessionKey: sessionKey ?? this.sessionKey
     );
   }
 }
@@ -51,6 +56,7 @@ class KeyService extends Notifier<KeyServiceState> {
   int get selectedProfile => state.selectedProfile;
   int get selectedServer => state.selectedServer;
 
+  SecretKey? get sessionKey => state.sessionKey;
 
   @override
   KeyServiceState build() {
@@ -88,6 +94,10 @@ class KeyService extends Notifier<KeyServiceState> {
 
   void addServer(String key, String value) {
     state = state.copyWith(servers: {...servers, key: value});
+  }
+
+  void updateSessionKey(List<int> keyBytes) {
+    state = state.copyWith(sessionKey: SecretKey(keyBytes));
   }
 
   void setServerByKey(String oldKey, String newKey, String newValue) {
@@ -357,6 +367,34 @@ class KeyService extends Notifier<KeyServiceState> {
     return base64Encode(await encryptWithAes(contentBytes, aesKey));
   }
 
+  Future<String> decryptBase64WithAesToString(String content, SecretKey aesKey) async {
+    return utf8.decode(await decryptBase64WithAesToBytes(content, aesKey));
+  }
+  Future<List<int>> decryptBase64WithAesToBytes(String content, SecretKey aesKey) async {
+    final contentBytes = base64Decode(content);
+    return await decryptWithAes(contentBytes, aesKey);
+  }
+
+  Future<List<int>> decryptWithAes(List<int> contentBytes, SecretKey aesKey) async {
+    final algorithm = AesGcm.with256bits();
+
+    final nonce = contentBytes.sublist(0, 12);
+    final mac = Mac(contentBytes.sublist(contentBytes.length - 16));
+    final cipherText = contentBytes.sublist(12, contentBytes.length - 16);
+
+    final secretBox = SecretBox(
+      cipherText,
+      nonce: nonce,
+      mac: mac,
+    );
+
+    final decrypted = await algorithm.decrypt(
+      secretBox,
+      secretKey: aesKey,
+    );
+
+    return decrypted;
+  }
 
   Future<List<int>> encryptWithAes(List<int> contentBytes, SecretKey aesKey) async {
     final algorithm = AesGcm.with256bits();
@@ -405,33 +443,30 @@ class KeyService extends Notifier<KeyServiceState> {
     );
   }
 
+  Future<List<int>> deriveAesKey(List<int> secretKeyBytes) async {
+    final hkdf = Hkdf(
+      hmac: Hmac.sha256(),
+      outputLength: 32);
 
-  Future<String> decryptWithAes(String base64EncodedContent, SecretKey aesKey) async {
-    try {
-      final algorithm = AesGcm.with256bits();
-
-      final combined = base64Decode(base64EncodedContent);
-
-      final nonce = combined.sublist(0, 12);
-      final mac = Mac(combined.sublist(combined.length - 16));
-      final cipherText = combined.sublist(12, combined.length - 16);
-
-      final secretBox = SecretBox(
-        cipherText,
-        nonce: nonce,
-        mac: mac,
-      );
-
-      final decrypted = await algorithm.decrypt(
-        secretBox,
-        secretKey: aesKey,
-      );
-
-      return utf8.decode(decrypted);
-    }
-    catch (e){
-      return "Couldn't decrypt content";
-    }
+    final SecretKey secretKey = SecretKey(secretKeyBytes);
+    final derivedKey = await hkdf.deriveKey(info: "SoChat-E2E-AES-Key".codeUnits, secretKey: secretKey);
+    debugPrint("Derived AES: ${derivedKey.bytes}");
+    return derivedKey.bytes;
   }
+
+  Future<List<int>> confirmHandshake(KeyP keyPair, List<int> serverPublicKeyBytes) async {
+    final algorithm = X25519();
+
+    final sharedSecret = await algorithm.sharedSecretKey(
+      keyPair: await keyPair.getX25519KeyPair(),
+      remotePublicKey: SimplePublicKey(serverPublicKeyBytes, type: KeyPairType.x25519),
+    );
+
+    final sharedSecretBytes = await sharedSecret.extractBytes();
+
+    return await deriveAesKey(sharedSecretBytes);
+
+  }
+
 
 }

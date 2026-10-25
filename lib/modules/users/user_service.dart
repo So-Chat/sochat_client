@@ -5,14 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sochat_client/modules/keys/key_service.dart';
 import 'package:sochat_client/modules/media/media_service.dart';
 import 'package:sochat_client/modules/users/user.dart';
-import 'package:sochat_client/modules/websocket/message_packet.dart';
-import 'package:sochat_client/modules/websocket/web_socket_service.dart';
+import 'package:sochat_client/modules/network/message_packet.dart';
+import 'package:sochat_client/modules/network/tcp_socket_service.dart';
 
 import '../common/auth_service.dart';
 
 final userServiceProvider = Provider<UserService>(
   (ref) => UserService(
-    ref.read(webSocketProvider.future),
+    ref.read(tcpSocketProvider.future),
     ref.read(mediaServiceProvider),
     ref.read(authServiceProvider.notifier),
     ref,
@@ -20,7 +20,7 @@ final userServiceProvider = Provider<UserService>(
 );
 
 class UserService {
-  late final WebSocketService _webSocket;
+  late final TcpSocketService _webSocket;
   late final MediaService _mediaService;
   late final AuthService _authService;
 
@@ -32,7 +32,7 @@ class UserService {
   StreamSubscription? _subscription;
 
   UserService(
-    Future<WebSocketService> webSocketFuture,
+    Future<TcpSocketService> webSocketFuture,
     MediaService mediaService,
     AuthService authService,
     this.ref,

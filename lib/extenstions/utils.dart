@@ -89,4 +89,9 @@ class Utils {
       };
     }).toList();
   }
+  static Uint8List encodeRequestId(int requestId) {
+    return (ByteData(4)..setInt32(0, requestId, Endian.big))
+        .buffer
+        .asUint8List();
+  }
 }

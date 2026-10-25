@@ -28,13 +28,13 @@ class Message {
 
   factory Message.fromJson(Map<String, dynamic> json, User sender) {
     final ts = json['timestamp'];
-    DateTime dateTime = DateTime(
+    final DateTime dateTime = DateTime.utc(
       ts[0],
       ts[1],
       ts[2],
-      ts[3],
-      ts[4],
-      ts[5],
+      ts.length > 3 ? ts[3] : 0,
+      ts.length > 4 ? ts[4] : 0,
+      ts.length > 5 ? ts[5] : 0,
     );
 
     return Message(
@@ -50,13 +50,13 @@ class Message {
 
   factory Message.fromJsonWithMedia(Map<String, dynamic> json, User sender, List<Media> medias) {
     final ts = json['timestamp'];
-    DateTime dateTime = DateTime(
+    final DateTime dateTime = DateTime.utc(
       ts[0],
       ts[1],
       ts[2],
-      ts[3],
-      ts[4],
-      ts[5],
+      ts.length > 3 ? ts[3] : 0,
+      ts.length > 4 ? ts[4] : 0,
+      ts.length > 5 ? ts[5] : 0,
     );
 
     return Message(

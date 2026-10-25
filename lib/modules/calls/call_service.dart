@@ -18,8 +18,8 @@ import 'package:sochat_client/modules/chats/chat.dart';
 import 'package:sochat_client/modules/chats/chat_service.dart';
 import 'package:sochat_client/modules/media_capture/capture_service.dart';
 import 'package:sochat_client/modules/users/user_service.dart';
-import 'package:sochat_client/modules/websocket/message_packet.dart';
-import 'package:sochat_client/modules/websocket/web_socket_service.dart';
+import 'package:sochat_client/modules/network/message_packet.dart';
+import 'package:sochat_client/modules/network/tcp_socket_service.dart';
 
 final callServiceProvider = FutureProvider<CallService>((ref) async {
   final capture = await ref.watch(mediaCaptureServiceProvider.future);
@@ -29,7 +29,7 @@ final callServiceProvider = FutureProvider<CallService>((ref) async {
   });
 
   return CallService(
-    await ref.read(webSocketProvider.future),
+    await ref.read(tcpSocketProvider.future),
     capture,
     ref.read(chatsServiceProvider.notifier),
     ref,
@@ -39,7 +39,7 @@ final callServiceProvider = FutureProvider<CallService>((ref) async {
 final mediaStateProvider = StateProvider<CallMediaState?>((ref) => null);
 
 class CallService {
-  final WebSocketService _webSocket;
+  final TcpSocketService _webSocket;
   final CaptureService _captureService;
   final ChatService _chatService;
 
@@ -127,7 +127,7 @@ class CallService {
         {'urls': 'stun:stun.l.google.com:19302'},
         {
           "urls": [
-            'turn:${turnCredentials.ip}:${turnCredentials.port}',
+            'turn:${turnCredentials.ip}:${turnCredentials.port}?transport=tcp',
             'turn:${turnCredentials.ip}:${turnCredentials.port}?transport=udp',
           ],
           "username": turnCredentials.username,
@@ -222,7 +222,7 @@ class CallService {
             'sdp_mid': candidate.sdpMid,
             'sdp_mline_index': candidate.sdpMLineIndex,
           },
-        ).toJson(),
+        ),
       );
     };
 
@@ -265,7 +265,7 @@ class CallService {
           payload: {"sdp": offer.sdp, "user_id": userId, "chat_id": chatId},
         );
 
-        _webSocket.addToSink(messagePacket.toJson());
+        _webSocket.addToSink(messagePacket);
       }
     } catch (e) {
       throw Exception(e);
@@ -308,7 +308,7 @@ class CallService {
       type: "call_answer",
       payload: {"sdp": answer.sdp},
     );
-    _webSocket.addToSink(messagePacket.toJson());
+    _webSocket.addToSink(messagePacket);
   }
 
   Future<void> handleAnswer(String sdp, int chatId, int userId) async {
@@ -342,10 +342,13 @@ class CallService {
           ? payload['sdp_mline_index']
           : int.tryParse(payload['sdp_mline_index']?.toString() ?? '0'),
     );
+    if (peerConnection == null) {
+      _pendingCandidates.add(candidateIce);
+      return;
+    }
 
     final remoteDescriptionSet = await peerConnection!.getRemoteDescription();
-
-    if (peerConnection == null || remoteDescriptionSet == null) {
+    if (remoteDescriptionSet == null) {
       _pendingCandidates.add(candidateIce);
       return;
     }
@@ -355,7 +358,7 @@ class CallService {
 
   Future<void> callEnd(int chatId) async {
     _webSocket.addToSink(
-      MessagePacket(type: "call_end", payload: {}).toJson(),
+      MessagePacket(type: "call_end", payload: {}),
     );
     await handleCallEnd(chatId);
   }
@@ -439,6 +442,7 @@ class CallService {
     final request = await _webSocket.sendRequest(
       MessagePacket(type: "turn_credentials_get", payload: {}),
     );
+    debugPrint("TURN credentials: ${request.payload}");
     return TurnCredentials(
       request.payload["username"],
       request.payload["credential"],

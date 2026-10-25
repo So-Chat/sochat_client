@@ -13,7 +13,7 @@ import 'package:sochat_client/modules/messages/message.dart';
 import 'package:sochat_client/modules/messages/message_service.dart';
 import 'package:sochat_client/modules/users/user.dart';
 
-import '../modules/websocket/web_socket_service.dart';
+import '../modules/network/tcp_socket_service.dart';
 
 final chatControllerProvider = NotifierProvider<ChatController, ChatState>(
   ChatController.new,
@@ -119,12 +119,12 @@ class ChatController extends Notifier<ChatState> {
   }
 
   Future<void> loadFriendsList() async {
-    await ref.read(webSocketProvider.future);
+    await ref.read(tcpSocketProvider.future);
     await _friendsService.getRelativesList();
   }
 
   Future<void> loadChatList() async {
-    await ref.read(webSocketProvider.future);
+    await ref.read(tcpSocketProvider.future);
     _chatService.getChatList();
   }
 

@@ -1,10 +1,11 @@
 import 'dart:convert';
 
 class MessagePacket {
+  int requestId;
   final String? type;
   final Map<String, dynamic> payload;
 
-  MessagePacket({required this.type, required this.payload});
+  MessagePacket({this.requestId = 0, required this.type, required this.payload});
 
   Map<String, dynamic> toJson() {
     return {
@@ -27,11 +28,17 @@ class MessagePacket {
 }
 
 class MessagePacketBuilder {
+  int _requestId = 0;
   String? _type;
   final Map<String, dynamic> _payload = {};
 
   MessagePacketBuilder type(String type) {
     _type = type;
+    return this;
+  }
+
+  MessagePacketBuilder requestId(int requestId) {
+    _requestId = requestId;
     return this;
   }
 
@@ -46,6 +53,6 @@ class MessagePacketBuilder {
   }
 
   MessagePacket build() {
-    return MessagePacket(type: _type, payload: Map.from(_payload));
+    return MessagePacket(requestId: _requestId, type: _type, payload: Map.from(_payload));
   }
 }
